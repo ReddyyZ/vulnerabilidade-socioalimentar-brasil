@@ -103,14 +103,17 @@ def get_ibge(s, timeout, selected):
     return output
 
 
-def report_payload(year, uf):
+def report_payload(
+    year, uf, index_code="4", age_start="0", age_end="5",
+):
     # coMunicipioIbge=99 e essencial; vazio devolve somente totais.
     return {
         "excel": "1", "tpRelatorio": "2", "coVisualizacao": "3",
         "nuAno": str(year), "nuMes[]": "99", "tpFiltro": "M",
         "coRegiao": "99", "coUfIbge": uf, "coMunicipioIbge": "99",
         "noRegional": "", "st_cobertura": "99", "nu_ciclo_vida": "1",
-        "nu_idade_inicio": "0", "nu_idade_fim": "5", "nu_indice_cri": "4",
+        "nu_idade_inicio": str(age_start), "nu_idade_fim": str(age_end),
+        "nu_indice_cri": str(index_code),
         "nu_indice_ado": "1", "nu_idade_ges": "99", "ds_sexo2": "1",
         "ds_raca_cor2": "99", "co_sistema_origem": "0",
         "CO_POVO_COMUNIDADE": "TODOS", "CO_ESCOLARIDADE": "TODOS",
@@ -135,20 +138,22 @@ def start_portal(s, timeout, limiter):
     expected = [
         'action="/sisvan/relatoriopublico/estadonutricional"',
         'name="coMunicipioIbge"', 'name="nu_indice_cri"',
-        'value="4">IMC X Idade',
+        'value="3">Altura X Idade', 'value="4">IMC X Idade',
     ]
     missing = [x for x in expected if x not in page]
     if missing:
         raise RuntimeError("Formulario SISVAN mudou; ausentes: " + repr(missing))
 
 
-def fetch_xlsx(s, args, limiter, uf, uf_code):
+def fetch_xlsx(
+    s, args, limiter, uf, uf_code, payload=None, debug_name=None,
+):
     for attempt in range(args.retries + 1):
         limiter.wait()
         response = http(
             s, "POST", ENDPOINT,
             (args.connect_timeout, args.read_timeout),
-            data=report_payload(args.year, uf_code),
+            data=payload or report_payload(args.year, uf_code),
             headers={
                 "Referer": PORTAL,
                 "Accept": "application/vnd.openxmlformats-officedocument."
@@ -159,8 +164,10 @@ def fetch_xlsx(s, args, limiter, uf, uf_code):
             return response.content
         args.debug_dir.mkdir(parents=True, exist_ok=True)
         kind = response.headers.get("Content-Type", "").lower()
+        prefix = debug_name or uf
         debug = args.debug_dir / (
-            uf + "_resposta_invalida" + (".html" if "html" in kind else ".bin")
+            prefix + "_resposta_invalida"
+            + (".html" if "html" in kind else ".bin")
         )
         debug.write_bytes(response.content)
         if attempt == args.retries:

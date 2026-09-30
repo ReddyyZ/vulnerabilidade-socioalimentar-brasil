@@ -410,19 +410,19 @@ O projeto deverá produzir, no mínimo:
 11. produtos espaciais de sobreposição entre vulnerabilidade social e nutricional;
 12. documentação e dicionário das variáveis.
 
-## 14. Decisões pendentes antes da implementação
+## 14. Decisões de implementação
 
-- [ ] Enumerar as faixas etárias oficiais disponíveis no SISVAN para cada índice.
-- [ ] Definir quais faixas serão coletadas inicialmente.
-- [ ] Confirmar todos os filtros que deverão permanecer constantes entre as consultas.
-- [ ] Definir anos e abrangência territorial.
-- [ ] Definir convenção definitiva de nomes dos arquivos.
-- [ ] Definir formato e esquema do manifesto.
-- [ ] Definir política de reexecução e versionamento dos arquivos brutos.
+- [x] Enumerar as faixas etárias oficiais disponíveis no SISVAN para cada índice.
+- [x] Definir inicialmente a faixa de 0 a menos de 5 anos para os dois índices.
+- [x] Confirmar os filtros constantes entre as consultas.
+- [x] Definir 2025 e todos os municípios do Brasil como recorte inicial.
+- [x] Definir a convenção de nomes dos arquivos.
+- [x] Definir o formato CSV e o esquema do manifesto.
+- [x] Reutilizar arquivos brutos e exigir `--force` para sobrescrita explícita.
 - [ ] Definir limite mínimo de avaliados para as análises municipais.
 - [ ] Definir a fonte do denominador utilizado no cálculo de cobertura.
-- [ ] Validar os esquemas oficiais esperados para IMC por idade e altura por idade.
-- [ ] Definir testes automáticos de fidelidade e consistência.
+- [x] Validar os esquemas oficiais esperados para IMC por idade e altura por idade.
+- [x] Definir testes automáticos de fidelidade e consistência.
 
 ## 15. Ordem recomendada de implementação
 

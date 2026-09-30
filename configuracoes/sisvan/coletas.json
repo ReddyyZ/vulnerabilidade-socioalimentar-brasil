@@ -1,0 +1,17 @@
+{
+  "ano": 2025,
+  "consultas": [
+    {
+      "indice": "imc_por_idade",
+      "faixas_etarias": [
+        "0_a_menor_5_anos"
+      ]
+    },
+    {
+      "indice": "altura_por_idade",
+      "faixas_etarias": [
+        "0_a_menor_5_anos"
+      ]
+    }
+  ]
+}
