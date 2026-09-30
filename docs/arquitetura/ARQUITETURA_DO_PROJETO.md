@@ -159,6 +159,16 @@ As faixas etárias podem ser sobrepostas. Nesse caso:
 - cada arquivo deverá ser analisado segundo os parâmetros próprios da consulta;
 - agregações posteriores deverão usar apenas faixas comprovadamente disjuntas.
 
+### 4.5 Agregação etária e visão geral da população
+
+A agregação municipal será permitida somente entre intervalos mutuamente exclusivos. Para cobrir a fase infantil sem sobreposição, será utilizada a combinação `0 a < 5 anos` com `5 a < 10 anos`.
+
+A visão geral da população acompanhada reunirá crianças, adolescentes, adultos e idosos após harmonização das classificações nutricionais próprias de cada fase. Gestantes permanecerão em produto separado, e altura por idade não participará da soma populacional geral.
+
+No grupo `Déficit nutricional total`, `Magreza acentuada` e `Magreza` serão preservadas separadamente para crianças e adolescentes, enquanto `Baixo peso` será preservado para adultos e idosos. Esses campos serão componentes hierárquicos do déficit total e não poderão ser somados novamente a ele.
+
+As regras de cálculo, harmonização, prevenção de dupla contagem, preservação das categorias oficiais e interpretação estão registradas em [Decisão metodológica: agregação etária e visão geral da população no SISVAN](DECISAO_AGREGACAO_FAIXAS_ETARIAS.md).
+
 ## 5. Convenção dos arquivos brutos
 
 ### 5.1 Organização

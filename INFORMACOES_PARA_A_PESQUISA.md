@@ -184,6 +184,25 @@ Indicadores complementares:
 
 Analisar tanto déficits quanto excesso de peso permite observar a **dupla carga da má nutrição**, que pode coexistir em territórios socialmente vulneráveis.
 
+### 7.3 Visão geral da população acompanhada
+
+A análise principal de vulnerabilidade nutricional continuará utilizando o déficit de estatura em crianças menores de 5 anos. Como produto complementar, será construída uma visão geral do estado nutricional de crianças, adolescentes, adultos e idosos acompanhados pelo SISVAN. Gestantes permanecerão em uma base separada.
+
+Na base harmonizada, o grupo `Déficit nutricional total` será detalhado sem perda das classificações disponíveis em cada fase:
+
+```text
+Déficit nutricional total
+├── Magreza acentuada — crianças e adolescentes
+├── Magreza — crianças e adolescentes
+└── Baixo peso — adultos e idosos
+```
+
+`Magreza acentuada` e `Magreza` não serão tratadas como classificações existentes para adultos e idosos. Da mesma forma, `Baixo peso` não será convertido artificialmente nas categorias de magreza.
+
+Os três detalhamentos são componentes do déficit total. Portanto, não poderão ser somados novamente a ele em tabelas, mapas ou modelos. Os percentuais detalhados deverão utilizar denominadores compatíveis com as fases que efetivamente possuem cada classificação.
+
+As regras completas estão registradas em [Decisão metodológica: agregação etária e visão geral da população no SISVAN](docs/arquitetura/DECISAO_AGREGACAO_FAIXAS_ETARIAS.md).
+
 ## 8. Denominadores, cobertura e estabilidade dos resultados do SISVAN
 
 Os dados do SISVAN se referem à população acompanhada e registrada na Atenção Primária à Saúde. Portanto, não devem ser interpretados automaticamente como uma amostra representativa de todos os residentes do município.
