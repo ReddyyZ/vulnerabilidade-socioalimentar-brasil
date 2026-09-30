@@ -1,0 +1,347 @@
+# Informações e decisões metodológicas da pesquisa
+
+## 1. Pergunta norteadora
+
+> Identificar áreas do Brasil de maior risco alimentar e vulnerabilidade social a partir dos indicadores IVS, IDHM, CadÚnico e SISVAN.
+
+Este documento registra conceitos, decisões metodológicas, limitações e verificações que devem ser considerados durante a coleta, o tratamento, a análise e a interpretação dos dados.
+
+## 2. Distinção conceitual importante
+
+Os indicadores utilizados não medem exatamente o mesmo fenômeno:
+
+- **IVS, IDHM e CadÚnico** descrevem diferentes dimensões das condições sociais, econômicas e territoriais da população.
+- **SISVAN** registra o estado nutricional e o consumo alimentar das pessoas acompanhadas pelos serviços de saúde.
+- O estado nutricional observado no SISVAN não constitui, isoladamente, uma medida direta de insegurança alimentar domiciliar.
+
+Por isso, é metodologicamente mais seguro tratar:
+
+1. IVS, IDHM e CadÚnico como indicadores de **vulnerabilidade social estrutural**;
+2. SISVAN como fonte de **desfechos ou sinais de vulnerabilidade nutricional**;
+3. a coincidência territorial entre essas dimensões como evidência de áreas prioritárias para investigação e políticas públicas.
+
+Evitar afirmar que a vulnerabilidade social causou diretamente determinado resultado nutricional apenas com base em correlações ou sobreposição espacial.
+
+## 3. Insight central sobre o SISVAN: analisar altura por idade
+
+### 3.1 Indicador principal recomendado
+
+Para identificar manifestações nutricionais crônicas associadas a condições persistentes de vulnerabilidade, analisar no SISVAN:
+
+- **Fase da vida:** Criança;
+- **Faixa etária:** 0 a menos de 5 anos;
+- **Índice antropométrico:** Altura por idade;
+- **Categorias de interesse:**
+  - Muito baixa estatura para idade;
+  - Baixa estatura para idade.
+
+Calcular a prevalência de déficit de estatura:
+
+```text
+Déficit de estatura (%) =
+(crianças com muito baixa estatura + crianças com baixa estatura)
+÷ total de crianças avaliadas
+× 100
+```
+
+O déficit de estatura para a idade representa um comprometimento de crescimento de natureza geralmente crônica e acumulada. Por esse motivo, possui maior coerência conceitual com a análise conjunta de pobreza, privação social, IVS elevado e IDHM baixo.
+
+### 3.2 Não substituir nem descartar a base de IMC por idade
+
+A base de **IMC por idade** deve ser preservada e utilizada como análise complementar. Para menores de 5 anos, podem ser analisadas as categorias:
+
+- Magreza acentuada;
+- Magreza;
+- Eutrofia;
+- Risco de sobrepeso;
+- Sobrepeso;
+- Obesidade.
+
+Uma medida complementar de magreza pode ser calculada como:
+
+```text
+Magreza total (%) =
+(crianças com magreza acentuada + crianças com magreza)
+÷ total de crianças avaliadas
+× 100
+```
+
+A altura por idade e o IMC por idade respondem a perguntas diferentes:
+
+| Índice | Interpretação principal | Papel sugerido na pesquisa |
+|---|---|---|
+| Altura por idade | Comprometimento crônico ou acumulado do crescimento | Desfecho nutricional principal |
+| IMC por idade | Estado nutricional atual, incluindo magreza e excesso de peso | Análise complementar e de sensibilidade |
+| Peso por altura | Magreza ou excesso de peso em relação à altura | Alternativa para avaliar déficit agudo |
+| Peso por idade | Resultado que pode refletir déficit de altura, de peso corporal ou ambos | Indicador complementar, não exclusivo |
+
+### 3.3 Por que “baixo peso” não deve ser o único indicador
+
+No SISVAN, **baixo peso para idade** pertence ao índice **Peso por idade**. Já **magreza** e **magreza acentuada** pertencem a índices como **IMC por idade** e **Peso por altura**.
+
+Esses nomes não são sinônimos e não devem ser trocados na base bruta. O peso por idade é menos específico, pois uma criança pode apresentar baixo peso em razão de baixa estatura, magreza ou da combinação dessas condições.
+
+Assim, para a pergunta desta pesquisa:
+
+- usar **déficit de estatura para idade** como resultado principal de privação nutricional crônica;
+- usar **magreza por IMC para idade** como resultado complementar;
+- não usar **baixo peso para idade** como único marcador de risco alimentar.
+
+## 4. Preservação integral das bases originais
+
+Os arquivos brutos devem permanecer **100% fiéis às fontes oficiais**. Isso inclui:
+
+- nomes originais das colunas;
+- categorias e grafia utilizadas pela fonte;
+- valores, códigos, períodos e unidades originais;
+- ausência de categorias que não tenham sido fornecidas pela fonte;
+- metadados necessários para reproduzir a consulta.
+
+Não renomear colunas, juntar categorias, calcular percentuais ou inserir códigos de outras fontes diretamente na camada bruta.
+
+Sugestão de organização:
+
+```text
+dados/
+├── brutos/          # arquivos exatamente como obtidos em cada fonte
+├── intermediarios/  # padronizações e junções reproduzíveis
+└── tratados/        # indicadores finais utilizados na análise
+```
+
+Toda transformação deve ocorrer por código e ser documentada. Dessa forma, é possível reproduzir a análise e conferir os resultados com os arquivos originais.
+
+## 5. Unidade territorial e compatibilização
+
+Antes do cruzamento, verificar se todas as fontes possuem a mesma unidade de análise. Para uma análise nacional detalhada, a unidade mais provável é o **município**.
+
+Cuidados necessários:
+
+- utilizar o código oficial do município do IBGE como chave de integração;
+- confirmar se cada fonte utiliza código de seis ou sete dígitos;
+- não realizar a junção apenas pelo nome do município;
+- preservar zeros à esquerda quando os códigos forem armazenados como texto;
+- verificar criação, extinção, fusão ou alteração de municípios entre os anos analisados;
+- conferir se IVS e IDHM estão disponíveis no mesmo nível territorial pretendido;
+- documentar perdas de correspondência em cada junção.
+
+Produzir uma tabela de controle contendo, para cada integração:
+
+- quantidade de territórios antes da junção;
+- quantidade de correspondências;
+- quantidade de registros sem correspondência em cada fonte;
+- duplicidades encontradas;
+- tratamento adotado para cada problema.
+
+## 6. Compatibilidade temporal
+
+IVS, IDHM, CadÚnico e SISVAN podem possuir anos de referência muito diferentes. Comparar diretamente valores de anos distintos exige cautela.
+
+Para cada variável, registrar:
+
+- ano ou período de referência;
+- data de extração;
+- abrangência geográfica;
+- população considerada;
+- periodicidade da atualização;
+- eventuais mudanças metodológicas.
+
+Quando não for possível usar o mesmo ano em todas as fontes:
+
+1. escolher os períodos mais próximos disponíveis;
+2. justificar a escolha;
+3. evitar linguagem que pressuponha simultaneidade perfeita;
+4. realizar análise de sensibilidade com outros anos, quando possível.
+
+O IDHM municipal, em particular, está associado aos dados censitários utilizados em sua construção e não deve ser tratado automaticamente como um indicador anual.
+
+## 7. Indicadores sugeridos por dimensão
+
+### 7.1 Vulnerabilidade social estrutural
+
+Possíveis variáveis:
+
+- IVS total e suas dimensões;
+- IDHM total e suas dimensões;
+- proporção da população inscrita no CadÚnico;
+- proporção de famílias ou pessoas em pobreza e extrema pobreza;
+- proporção de beneficiários de programas de transferência de renda, se pertinente;
+- outras variáveis do CadÚnico compatíveis com a pergunta e a unidade territorial.
+
+Como IVS alto indica maior vulnerabilidade e IDHM alto indica maior desenvolvimento, padronizar a direção antes de produzir classificações conjuntas. Por exemplo, utilizar o inverso ou uma transformação do IDHM apenas na base tratada e documentar a fórmula.
+
+### 7.2 Vulnerabilidade nutricional
+
+Indicador principal:
+
+- prevalência de déficit de estatura para idade em crianças menores de 5 anos.
+
+Indicadores complementares:
+
+- prevalência de magreza e magreza acentuada por IMC para idade;
+- prevalência de risco de sobrepeso, sobrepeso e obesidade;
+- peso por altura, se a análise de déficit nutricional agudo for relevante;
+- indicadores de consumo alimentar, caso estejam disponíveis e sejam compatíveis com o recorte.
+
+Analisar tanto déficits quanto excesso de peso permite observar a **dupla carga da má nutrição**, que pode coexistir em territórios socialmente vulneráveis.
+
+## 8. Denominadores, cobertura e estabilidade dos resultados do SISVAN
+
+Os dados do SISVAN se referem à população acompanhada e registrada na Atenção Primária à Saúde. Portanto, não devem ser interpretados automaticamente como uma amostra representativa de todos os residentes do município.
+
+Para cada município, preservar no mínimo:
+
+- número de pessoas avaliadas;
+- número em cada categoria nutricional;
+- percentual em cada categoria;
+- ano de referência;
+- fase da vida e faixa etária;
+- índice antropométrico;
+- abrangência e demais filtros utilizados na consulta.
+
+Sempre que possível, calcular ou obter a cobertura:
+
+```text
+Cobertura aproximada do SISVAN (%) =
+número de crianças avaliadas no SISVAN
+÷ população estimada de crianças da mesma faixa etária no município
+× 100
+```
+
+O denominador populacional deve possuir idade, território e período compatíveis com o numerador.
+
+Municípios com poucos avaliados podem apresentar percentuais extremos por acaso. Considerar:
+
+- estabelecer um número mínimo de avaliações para análises comparativas;
+- apresentar o número de avaliados junto com a prevalência;
+- produzir análise de sensibilidade com diferentes pontos de corte;
+- utilizar suavização estatística ou modelos apropriados para pequenas áreas, se houver suporte metodológico;
+- mapear a cobertura para distinguir possível risco nutricional de ausência ou baixa intensidade de monitoramento.
+
+Nunca classificar uma prevalência elevada como prioridade sem conferir seu denominador.
+
+## 9. Possível sobreposição entre CadÚnico e SISVAN
+
+Parte relevante das pessoas acompanhadas no SISVAN pode estar vinculada ao CadÚnico ou a programas de transferência de renda. Isso pode gerar sobreposição entre as populações das fontes.
+
+Consequências possíveis:
+
+- municípios com melhor busca ativa podem registrar mais famílias vulneráveis no CadÚnico e mais avaliações no SISVAN;
+- uma associação observada pode refletir tanto vulnerabilidade real quanto diferenças de cobertura e capacidade administrativa;
+- baixa ocorrência registrada pode significar baixo risco, mas também baixa cobertura do sistema.
+
+Incluir cobertura, porte populacional, região e capacidade de registro entre as variáveis de controle ou nas análises de sensibilidade, quando possível.
+
+## 10. Estratégia analítica recomendada
+
+### Etapa 1 — Descrição individual das fontes
+
+- avaliar distribuição, valores ausentes e extremos;
+- conferir definições, denominadores e anos;
+- mapear a cobertura e a disponibilidade dos dados;
+- inspecionar a estabilidade dos percentuais do SISVAN.
+
+### Etapa 2 — Construção de uma dimensão social
+
+Padronizar, somente na base tratada, indicadores selecionados de IVS, IDHM e CadÚnico para que todos tenham a mesma direção: valores maiores devem representar maior vulnerabilidade.
+
+Antes de criar um índice sintético, examinar:
+
+- correlação entre variáveis;
+- redundância conceitual;
+- disponibilidade territorial;
+- sensibilidade aos pesos utilizados;
+- justificativa teórica de cada componente.
+
+Não atribuir pesos arbitrários sem justificativa. Uma alternativa transparente é apresentar separadamente as dimensões e testar mais de uma especificação.
+
+### Etapa 3 — Confronto com os resultados nutricionais
+
+Relacionar a dimensão social principalmente com:
+
+- déficit de estatura para idade;
+- magreza por IMC para idade como resultado complementar;
+- cobertura e número de avaliados do SISVAN.
+
+### Etapa 4 — Identificação de áreas prioritárias
+
+Uma classificação simples e interpretável pode identificar territórios com:
+
+```text
+alta vulnerabilidade social
++ alta prevalência de déficit de estatura
++ cobertura suficiente para sustentar a estimativa
+```
+
+É possível utilizar quantis, pontos de corte teóricos, mapas bivariados ou técnicas de análise espacial. A escolha deve ser descrita e testada quanto à sensibilidade.
+
+### Etapa 5 — Análise espacial
+
+Se forem aplicadas técnicas espaciais, considerar:
+
+- dependência espacial entre municípios vizinhos;
+- escolha e justificativa da matriz de vizinhança;
+- autocorrelação espacial global e local;
+- efeito do tamanho populacional e de pequenos denominadores;
+- diferenças regionais e urbano-rurais;
+- interpretação cuidadosa de agrupamentos espaciais.
+
+## 11. Interpretação dos resultados
+
+Evitar os seguintes erros:
+
+- **falácia ecológica:** relações municipais não demonstram que todos os indivíduos do município possuem as mesmas características;
+- **causalidade indevida:** associação espacial ou estatística não comprova causa;
+- **confusão entre ausência de registro e ausência de problema:** dados faltantes ou baixa cobertura precisam ser mostrados;
+- **comparação de grandezas incompatíveis:** contagens absolutas favorecem municípios populosos;
+- **confusão entre baixo peso e magreza:** são classificações pertencentes a índices diferentes;
+- **transformação da base bruta:** nomes e categorias oficiais devem ser preservados na origem;
+- **ranking sem incerteza:** pequenas diferenças podem não representar diferenças substantivas.
+
+Dar preferência a prevalências e proporções acompanhadas de seus denominadores, intervalos de confiança ou outras medidas de estabilidade, quando viável.
+
+## 12. Produtos úteis para a pesquisa
+
+Além da base analítica final, produzir:
+
+- dicionário de dados com fonte, definição, unidade, direção e ano de cada variável;
+- registro dos filtros usados nas consultas;
+- scripts reproduzíveis de coleta, limpeza e junção;
+- relatório de qualidade das integrações municipais;
+- mapa da cobertura do SISVAN;
+- mapa do déficit de estatura para idade;
+- mapa da vulnerabilidade social;
+- mapa bivariado entre vulnerabilidade social e déficit de estatura;
+- análise complementar de magreza por IMC para idade;
+- tabela com resultados das análises de sensibilidade.
+
+## 13. Formulação recomendada para o objetivo
+
+Uma formulação mais precisa pode ser:
+
+> Identificar áreas do Brasil com sobreposição de vulnerabilidade social e nutricional, a partir de indicadores do IVS, IDHM e CadÚnico e da prevalência de déficit de estatura em crianças menores de 5 anos acompanhadas pelo SISVAN.
+
+Se a pesquisa mantiver a expressão “risco alimentar”, explicar que ela é uma construção analítica baseada na combinação de condições sociais e desfechos nutricionais, e não uma medição direta da insegurança alimentar por escala domiciliar.
+
+## 14. Fontes metodológicas essenciais
+
+- Ministério da Saúde — [Protocolos do Sistema de Vigilância Alimentar e Nutricional (SISVAN)](https://www.gov.br/saude/pt-br/composicao/saps/vigilancia-alimentar-e-nutricional/arquivos/protocolos-do-sistema-de-vigilancia-alimentar-e-nutricional-sisvan)
+- Ministério da Saúde — [Sistema de Vigilância Alimentar e Nutricional](https://www.gov.br/saude/pt-br/composicao/saps/vigilancia-alimentar-e-nutricional/sisvan)
+- Organização Mundial da Saúde — [Malnutrition in children](https://www.who.int/data/nutrition/nlis/info/malnutrition-in-children)
+- Organização Mundial da Saúde — [Child Growth Standards](https://www.who.int/tools/child-growth-standards)
+
+## 15. Decisões a registrar durante o desenvolvimento
+
+Manter esta seção atualizada com as decisões definitivas da pesquisa:
+
+- [ ] unidade territorial escolhida;
+- [ ] período ou anos analisados;
+- [ ] filtros exatos utilizados no SISVAN;
+- [ ] obtenção da base de altura por idade para menores de 5 anos;
+- [ ] definição do denominador de cobertura do SISVAN;
+- [ ] número mínimo de avaliações por município;
+- [ ] variáveis selecionadas do CadÚnico;
+- [ ] tratamento temporal do IVS e do IDHM;
+- [ ] método de padronização dos indicadores;
+- [ ] método de identificação das áreas prioritárias;
+- [ ] análises de sensibilidade;
+- [ ] limitações incluídas no texto final.

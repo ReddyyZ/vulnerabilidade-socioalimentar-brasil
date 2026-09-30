@@ -3,5 +3,6 @@
   "municipios-cadunico.json": "https://raw.githubusercontent.com/TriangulosTecnologia/cozsolidarias/refs/heads/main/public/geo/municipios-cadunico.json",
   "CADINSAN_2025_dados_municipais.csv": "https://raw.githubusercontent.com/TriangulosTecnologia/cozsolidarias/refs/heads/main/src/data-source-static/data/CADINSAN_2025_dados_municipais.csv",
   "SISVAN": "https://dadosabertos.saude.gov.br/dataset/sisvan-estado-nutricional",
-  "sisvan_estado_nutricional_2023.zip": "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SISVAN/estado_nutricional/sisvan_estado_nutricional_2023.zip"
+  "sisvan_estado_nutricional_2023.zip": "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SISVAN/estado_nutricional/sisvan_estado_nutricional_2023.zip",
+  "sisvan_relatorios": "https://sisaps.saude.gov.br/sisvan/relatoriopublico/"
 }
