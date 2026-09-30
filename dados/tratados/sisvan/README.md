@@ -16,7 +16,8 @@ A configuração padrão está em `configuracoes/sisvan/coletas.json` e coleta:
 ## Produtos nacionais
 
 - `imc_por_idade/sisvan_municipios_imc_por_idade_0_a_menor_5_anos_2025.csv`;
-- `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv`.
+- `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv`;
+- `sisvan_municipios_consultas_combinadas_2025.csv`, em formato longo.
 
 Cada CSV possui um arquivo `.metadados.json` correspondente, com os parâmetros da consulta, colunas, UFs e estatísticas de validação.
 
@@ -83,6 +84,35 @@ python3 scripts/coletar_sisvan.py \
 ```
 
 Esse exemplo produz quatro bases consolidadas independentes.
+
+## Coletar todas as faixas e criar um arquivo único
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --todas-faixas \
+  --arquivo-unico
+```
+
+Com os dois índices da configuração padrão, esse comando executa 18 consultas nacionais: nove faixas para IMC por idade e nove para altura por idade. Ele mantém os 18 CSVs individuais e cria também:
+
+```text
+dados/tratados/sisvan/sisvan_municipios_consultas_combinadas_2025.csv
+```
+
+O arquivo único usa formato longo. Cada linha identifica o índice, a faixa etária, a classificação nutricional, a quantidade, o percentual e o total avaliado. Isso permite reunir índices com categorias diferentes sem perder informação.
+
+As faixas são concatenadas, nunca somadas. Como existem intervalos sobrepostos, uma mesma pessoa pode participar de mais de uma consulta.
+
+Também é possível criar um arquivo único apenas para um índice:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --indices altura_por_idade \
+  --todas-faixas \
+  --arquivo-unico
+```
+
+O caminho do consolidado pode ser escolhido com `--arquivo-unico-output`.
 
 ## Simular sem consultar o SISVAN
 

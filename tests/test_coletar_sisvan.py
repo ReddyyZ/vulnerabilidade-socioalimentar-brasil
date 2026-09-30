@@ -1,3 +1,4 @@
+import csv
 import io
 import json
 import sys
@@ -99,6 +100,66 @@ class SisvanCollectorTests(unittest.TestCase):
                 ("altura_por_idade", "5_a_menor_10_anos"),
             },
         )
+
+    def test_todas_as_faixas_para_os_dois_indices(self):
+        data = {
+            "ano": 2025,
+            "consultas": [
+                {"indice": "imc_por_idade", "faixas_etarias": ["0-5"]},
+                {"indice": "altura_por_idade", "faixas_etarias": ["0-5"]},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            args = SimpleNamespace(
+                config=path, year=None, indices=None, faixas_etarias=None,
+                todas_faixas=True,
+            )
+            queries = collector.resolve_queries(args)
+        self.assertEqual(len(queries), 18)
+        self.assertEqual(
+            {item.age_range.key for item in queries}, set(collector.AGE_RANGES),
+        )
+
+    def test_arquivo_unico_usa_formato_longo(self):
+        products = []
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            for key, counts in (
+                ("imc_por_idade", [1, 1, 5, 1, 1, 1]),
+                ("altura_por_idade", [1, 2, 7]),
+            ):
+                indicator = collector.INDICATORS[key]
+                rows, schema = collector.parse_export(
+                    self.workbook(indicator, counts), "RO", indicator,
+                )
+                output = directory / (key + ".csv")
+                collector.write_csv(output, rows, schema.columns)
+                products.append({
+                    "query": collector.Query(
+                        indicator, collector.AGE_RANGES["0_a_menor_5_anos"], 2025,
+                    ),
+                    "output": output,
+                    "schema": schema,
+                    "stats": collector.validate(rows, schema),
+                })
+            combined = directory / "combinado.csv"
+            written = collector.write_combined(
+                combined, products, [("RO", "11")],
+            )
+            with combined.open(newline="", encoding="utf-8-sig") as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertEqual(written, 9)
+            self.assertEqual(len(rows), 9)
+            self.assertEqual(
+                {row["Índice antropométrico"] for row in rows},
+                {"IMC X IDADE", "ALTURA X IDADE"},
+            )
+            self.assertEqual(
+                {row["Faixa etária"] for row in rows}, {"0 a < 5 anos"},
+            )
+            self.assertTrue(combined.with_suffix(".metadados.json").exists())
 
     def test_faixa_invalida_e_rejeitada(self):
         with self.assertRaises(ValueError):

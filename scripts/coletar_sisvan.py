@@ -40,7 +40,13 @@ MANIFEST_COLUMNS = (
     "abrangencia", "filtros", "data_hora_coleta", "quantidade_registros",
     "hash_arquivo", "status", "versao_coletor", "observacoes",
 )
-COLLECTOR_VERSION = "3.0"
+COMBINED_COLUMNS = (
+    "Índice antropométrico", "Código do índice SISVAN", "Faixa etária",
+    "Código da faixa etária", "Idade inicial SISVAN", "Idade final SISVAN",
+    "Ano", *BASE_COLUMNS, "Classificação nutricional", "Quantidade",
+    "Percentual", "Total",
+)
+COLLECTOR_VERSION = "3.1"
 
 
 @dataclass(frozen=True)
@@ -305,11 +311,11 @@ def atomic_write_bytes(path, content):
     temporary.replace(path)
 
 
-def write_csv(path, rows, columns):
+def write_csv(path, rows, columns, lineterminator="\r\n"):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     with temporary.open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer = csv.DictWriter(handle, fieldnames=columns, lineterminator=lineterminator)
         writer.writeheader()
         writer.writerows(rows)
     temporary.replace(path)
@@ -353,7 +359,7 @@ class Manifest:
                 item["faixa_etaria"], item["arquivo_local"],
             ),
         )
-        write_csv(self.path, ordered, MANIFEST_COLUMNS)
+        write_csv(self.path, ordered, MANIFEST_COLUMNS, lineterminator="\n")
 
 
 def parse_list(value):
@@ -391,7 +397,11 @@ def resolve_queries(args):
         for age in ages:
             configured.append((indicator_key, canonical_age(str(age))))
     cli_indicators = parse_list(args.indices)
-    cli_ages = parse_list(args.faixas_etarias)
+    cli_ages = (
+        list(AGE_RANGES)
+        if getattr(args, "todas_faixas", False)
+        else parse_list(args.faixas_etarias)
+    )
     if cli_indicators or cli_ages:
         indicators = cli_indicators or list(dict.fromkeys(item[0] for item in configured))
         ages = (
@@ -441,6 +451,93 @@ def output_path(args, query, states, query_count):
 
 def metadata_path(output):
     return output.with_suffix(".metadados.json")
+
+
+def combined_output_path(args, queries, states):
+    if args.arquivo_unico_output:
+        return args.arquivo_unico_output
+    years = {query.year for query in queries}
+    if len(years) != 1:
+        raise RuntimeError("O arquivo unico exige consultas do mesmo ano")
+    suffix = ""
+    if len(states) != len(UF_CODES):
+        suffix = "_ufs_" + "-".join(item[0] for item in states)
+    name = "sisvan_municipios_consultas_combinadas_%s%s.csv" % (
+        years.pop(), suffix,
+    )
+    return args.output_dir / name
+
+
+def write_combined(path, products, states):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    written = 0
+    with temporary.open("w", newline="", encoding="utf-8-sig") as target:
+        writer = csv.DictWriter(target, fieldnames=COMBINED_COLUMNS)
+        writer.writeheader()
+        for product_item in products:
+            query = product_item["query"]
+            schema = product_item["schema"]
+            with product_item["output"].open(
+                newline="", encoding="utf-8-sig",
+            ) as source:
+                reader = csv.DictReader(source)
+                if tuple(reader.fieldnames or ()) != schema.columns:
+                    raise RuntimeError(
+                        "Esquema inesperado no consolidado: %s"
+                        % product_item["output"]
+                    )
+                for source_row in reader:
+                    common = {
+                        "Índice antropométrico": query.indicator.official_title,
+                        "Código do índice SISVAN": query.indicator.code,
+                        "Faixa etária": query.age_range.official_label,
+                        "Código da faixa etária": query.age_range.key,
+                        "Idade inicial SISVAN": query.age_range.start,
+                        "Idade final SISVAN": query.age_range.end,
+                        "Ano": query.year,
+                        **{column: source_row[column] for column in BASE_COLUMNS},
+                        "Total": source_row["Total"],
+                    }
+                    for category in schema.categories:
+                        writer.writerow({
+                            **common,
+                            "Classificação nutricional": category,
+                            "Quantidade": source_row[category + " - Quantidade"],
+                            "Percentual": source_row[category + " - %"],
+                        })
+                        written += 1
+    temporary.replace(path)
+    metadata = {
+        "fonte": helper.PORTAL,
+        "arquivo": portable_path(path),
+        "formato": "longo",
+        "linhas": written,
+        "ufs": [item[0] for item in states],
+        "consultas": [
+            {
+                "indice": item["query"].indicator.key,
+                "indice_oficial": item["query"].indicator.official_title,
+                "faixa_etaria": item["query"].age_range.key,
+                "faixa_etaria_descricao": item["query"].age_range.official_label,
+                "ano": item["query"].year,
+                "arquivo_origem": portable_path(item["output"]),
+            }
+            for item in products
+        ],
+        "gerado_em": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "observacao": (
+            "As consultas foram concatenadas, nao somadas. Faixas etarias "
+            "sobrepostas podem conter as mesmas pessoas. Este e um produto "
+            "tratado; os XLSX oficiais permanecem na camada bruta."
+        ),
+    }
+    meta_path = metadata_path(path)
+    meta_path.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return written
 
 
 def write_metadata(path, query, output, stats, states, schema):
@@ -559,7 +656,10 @@ def collect_query(args, query, states, session, limiter, portal_started, manifes
     )
     print("  CSV consolidado:", output)
     print("  linhas:", stats["total"], "| Total=0:", len(stats["zeros"]))
-    return output
+    return {
+        "query": query, "output": output, "schema": expected_schema,
+        "stats": stats,
+    }
 
 
 def print_options():
@@ -598,6 +698,18 @@ def build_parser():
         "--faixas-etarias",
         help="Lista separada por virgulas; use --listar-opcoes para consultar",
     )
+    parser.add_argument(
+        "--todas-faixas", action="store_true",
+        help="Coleta todas as nove combinacoes etarias oficiais",
+    )
+    parser.add_argument(
+        "--arquivo-unico", action="store_true",
+        help="Cria tambem um CSV longo reunindo as consultas selecionadas",
+    )
+    parser.add_argument(
+        "--arquivo-unico-output", type=Path,
+        help="Caminho opcional do CSV unico; ativa --arquivo-unico",
+    )
     parser.add_argument("--raw-dir", type=Path, default=Path("dados/brutos/sisvan"))
     parser.add_argument(
         "--output-dir", type=Path, default=Path("dados/tratados/sisvan"),
@@ -627,6 +739,10 @@ def main():
         return
     if args.delay < 0 or args.connect_timeout <= 0 or args.read_timeout <= 0:
         parser.error("delay >= 0 e timeouts positivos")
+    if args.todas_faixas and args.faixas_etarias:
+        parser.error("use --todas-faixas ou --faixas-etarias, nao ambos")
+    if args.arquivo_unico_output:
+        args.arquivo_unico = True
     try:
         queries = resolve_queries(args)
         states = selected_states(args.ufs)
@@ -643,24 +759,36 @@ def main():
             )
         )
     print("UFs:", ", ".join(item[0] for item in states))
+    if args.output and len(queries) != 1:
+        parser.error("--output so pode ser usado com uma unica consulta")
+    if args.arquivo_unico:
+        print("Arquivo unico: formato longo, sem somar faixas sobrepostas")
     if args.dry_run:
         return
     session = helper.new_session(args.retries)
     limiter = helper.Limiter(args.delay)
     manifest = Manifest(args.manifest)
     portal_started = [False]
-    outputs = []
+    products = []
     for query in queries:
-        outputs.append(
+        products.append(
             collect_query(
                 args, query, states, session, limiter, portal_started,
                 manifest, len(queries),
             )
         )
+    combined = None
+    if args.arquivo_unico:
+        combined = combined_output_path(args, queries, states)
+        combined_rows = write_combined(combined, products, states)
+        print("\nCSV unico:", combined)
+        print("Linhas no formato longo:", combined_rows)
     print("\nCOLETA CONCLUIDA")
     print("Manifesto:", args.manifest)
-    for output in outputs:
-        print("CSV:", output)
+    for item in products:
+        print("CSV:", item["output"])
+    if combined:
+        print("CSV combinado:", combined)
 
 
 if __name__ == "__main__":
