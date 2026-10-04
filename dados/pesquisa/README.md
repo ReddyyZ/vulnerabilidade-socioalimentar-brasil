@@ -152,9 +152,12 @@ nas colunas `cadinsan_pct_*_arquivo`, acompanhados da diferença em pontos
 percentuais. Essa transformação não altera nenhum arquivo de entrada.
 
 O notebook exporta uma comparação de seleção entre usar as razões e os
-percentuais arredondados do CSV. Com a configuração inicial P75, `com_PBF`
-e mínimo de 100 avaliações de altura, a seleção muda de 275 para **274**
+percentuais arredondados do CSV. Com P75 para IVS/CadInsan/DAI, P25 para IDHM,
+`com_PBF` e mínimo de 100 avaliações de altura, a seleção muda de 219 para **218**
 municípios, devido ao tratamento dos percentuais e empates no corte.
+O IDHM baixo integra agora a seleção principal; sem essa exigência, a regra
+anterior selecionava 274 municípios com as razões recalculadas. Essa mudança
+é metodológica e não altera nenhum arquivo das quatro bases selecionadas.
 
 ## Integridade e atualizações
 

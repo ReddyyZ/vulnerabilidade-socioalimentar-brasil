@@ -419,8 +419,26 @@ denominador não positivo resulta em ausência analítica. Esse processamento
 segue o procedimento documentado em `datasets.municipios_cadinsan.description`
 e `source.notes`, sem modificar as bases de entrada.
 
-Na configuração inicial P75, `com_PBF` e mínimo de 100 avaliações de altura,
-a seleção passa de 275 municípios, usando percentuais arredondados, para 274
+Na configuração atual P75 para IVS/CadInsan/DAI, P25 para IDHM, `com_PBF` e
+mínimo de 100 avaliações de altura, a seleção passa de 219 municípios,
+usando percentuais arredondados, para 218
 com as razões recalculadas. O notebook exporta essa comparação. O estudo
 continua exploratório: diferenças temporais, cobertura, malhas territoriais e
 justificativas para os cortes ainda precisam ser consideradas.
+
+### IDHM como critério obrigatório da sobreposição
+
+A pesquisa adotou a coincidência de **IVS elevado + IDHM baixo + CadInsan
+proporcional elevado + DAI elevado**, sem ranking composto. Todos os municípios
+continuam na base integrada; a seleção exige os quatro critérios e os
+denominadores válidos. IDHM ausente gera informação insuficiente.
+
+O IDHM usa a cauda inferior: `IDHM ≤ percentil 100 × (1 − QUANTIL)`.
+Com quantil 0,75, usa P25 (0,599 nesta base); com 0,80, P20. A direção é
+considerada na comparação, sem transformar o IDHM original. A maior restrição
+é intencional, não prova de independência entre IVS e IDHM nem de causalidade.
+
+A regra anterior de três critérios selecionava 274 municípios. Ao exigir
+também IDHM baixo, a seleção passa a 218: 56 não atendem ao quarto critério.
+DPI e CadÚnico continuam complementares. Na sensibilidade, os quatro critérios
+são mantidos, e a seleção varia de 132 a 245 municípios nas 12 especificações.

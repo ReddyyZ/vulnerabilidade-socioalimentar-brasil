@@ -23,8 +23,8 @@ CATALOGUE_DATASETS = {
     "cadinsan": "municipios_cadinsan",
 }
 GROUP_COLORS = {
-    "Convergência dos três critérios": "#9e1b32",
-    "IVS e CadInsan elevados, DAI abaixo do corte": "#e89c38",
+    "Convergência dos quatro critérios": "#9e1b32",
+    "IVS e CadInsan elevados, IDHM baixo, DAI abaixo do corte": "#e89c38",
     "DAI elevado sem convergência social-alimentar": "#377eb8",
     "Outras combinações": "#d7e4df",
     "Informação insuficiente": "#b9b9b9",
@@ -331,11 +331,11 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
                            "municipios_referencia": int(valid.sum()),
                            "municipios_no_criterio": int(flag.fillna(False).sum()),
                            "percentil": quantile * 100 if high else (1 - quantile) * 100})
-    primary = ["criterio_ivs", "criterio_cadinsan", "criterio_dai"]
+    primary = ["criterio_ivs", "criterio_idhm", "criterio_cadinsan", "criterio_dai"]
     result["elegivel_principal"] = result[primary].notna().all(axis=1)
     result["prioritario"] = result[primary].all(axis=1).where(result["elegivel_principal"]).astype("boolean")
     result["numero_criterios_primarios"] = result[primary].sum(axis=1).where(result["elegivel_principal"]).astype("Int64")
-    social = (result["criterio_ivs"] & result["criterio_cadinsan"]).fillna(False)
+    social = (result["criterio_ivs"] & result["criterio_idhm"] & result["criterio_cadinsan"]).fillna(False)
     height = result["criterio_dai"].fillna(False)
     eligible = result["elegivel_principal"]
     groups = list(GROUP_COLORS)
@@ -348,6 +348,7 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
     for row in result.itertuples():
         missing = []
         if pd.isna(row.ivs): missing.append("IVS ausente")
+        if pd.isna(row.idhm): missing.append("IDHM ausente")
         if pd.isna(row.cadinsan_pct) or not row.cadastros_cadunico_cadinsan > 0:
             missing.append("CadInsan ausente ou denominador inválido")
         if pd.isna(row.avaliados_altura) or row.avaliados_altura <= 0:
@@ -387,7 +388,8 @@ def sensitivity(base, reference, quantiles=(0.75, 0.80), minima=(30, 50, 100),
         result, _ = classify(base, quantile, minimum, scenario)
         selected = set(result.loc[result["prioritario"].fillna(False), "codigo_ibge_6"])
         union = reference_set | selected
-        records.append({"cenario": scenario, "quantil": quantile, "minimo_avaliados": minimum,
+        records.append({"cenario": scenario, "quantil": quantile,
+                        "percentil_idhm": (1 - quantile) * 100, "minimo_avaliados": minimum,
                         "elegiveis": int(result["elegivel_principal"].sum()),
                         "prioritarios": len(selected), "coincidentes_principal": len(reference_set & selected),
                         "jaccard_principal": len(reference_set & selected) / len(union) if union else 1.0})
@@ -426,7 +428,7 @@ def dictionary():
         ("codigo_ibge_6", "Chave analítica por prefixo único", "texto", "Fontes; origem preservada", "Não implica harmonização histórica completa"),
         ("codigo_ibge_7", "Código informado nas fontes sociais", "texto", "IVS/CadÚnico/CadInsan", "Ausente quando nenhuma fonte social fornece o código"),
         ("ivs", "Índice de Vulnerabilidade Social", "0–1", "IVS, 2010", "Maior: maior vulnerabilidade"),
-        ("idhm", "Índice de Desenvolvimento Humano Municipal", "0–1", "IDHM, 2010", "Menor: menor desenvolvimento; contextual"),
+        ("idhm", "Índice de Desenvolvimento Humano Municipal", "0–1", "IDHM, 2010", "Menor: menor desenvolvimento; critério obrigatório no percentil 100 × (1 − quantil)"),
         ("cadunico_valor_original", "Pessoas cadastradas, valor preservado do JSON", "pessoas", "CadÚnico, junho/2026", "Unidade e período descritos no catálogo com hash correspondente"),
         ("cadunico_pessoas_2026_06", "Alias explícito para pessoas cadastradas", "pessoas", "CadÚnico, junho/2026", "Contexto de demanda; não integra a regra principal"),
         ("cadunico_referencia", "Referência mensal do JSON", "ano-mês", "Catálogo Cozinhas Solidárias", "2026-06"),
@@ -443,7 +445,8 @@ def dictionary():
         ("avaliados_altura", "Total avaliado em Altura X Idade", "registros avaliados", "SISVAN, 2025", "Não é medida de cobertura populacional"),
         ("avaliados_peso", "Total avaliado em Peso X Idade", "registros avaliados", "SISVAN, 2025", "Denominador específico de DPI"),
         ("criterio_*", "Flag relativa ao corte nacional", "booleano anulável", "Análise derivada", "Ausente quando indicador não é elegível"),
-        ("prioritario", "Coincidência de IVS, CadInsan e DAI elevados", "booleano anulável", "Análise derivada", "Ausente para informação insuficiente"),
+        ("prioritario", "Coincidência de IVS, CadInsan e DAI elevados e IDHM baixo", "booleano anulável", "Análise derivada", "Quatro critérios obrigatórios; ausente para informação insuficiente"),
+        ("numero_criterios_primarios", "Quantidade de critérios primários atendidos", "0–4", "Análise derivada", "Ausente quando falta informação para qualquer critério primário; não é ranking"),
         ("perfil", "Grupo exploratório de sobreposição", "categoria", "Análise derivada", "Não é classificação oficial"),
         ("fracao_cenarios_selecionado", "Fração das especificações que selecionam o município", "0–1", "Sensibilidade", "Não é probabilidade ou intervalo de confiança"),
     ]
@@ -500,7 +503,7 @@ def association_figure(result, thresholds, output):
         ax.axhline(cuts["dai"], color="#777777", linestyle="--", linewidth=1)
         ax.axvline(cuts[criterion], color="#777777", linestyle="--", linewidth=1)
         ax.set(xlabel=label, ylabel="DAI (%)", title=f"{label} × DAI")
-    fig.suptitle("Municípios elegíveis; vermelho = convergência dos três critérios")
+    fig.suptitle("Municípios elegíveis; vermelho = convergência dos quatro critérios")
     fig.tight_layout()
     save_figure(fig, output, "02_associacoes")
     return fig
@@ -533,7 +536,8 @@ def correlation_figure(result, output, minimum=100):
 def sensitivity_figure(table, output):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(11, 4.5))
-    labels = [f"{r.cenario}\nP{r.quantil * 100:.0f} / n≥{r.minimo_avaliados}" for r in table.itertuples()]
+    labels = [f"{r.cenario}\nP{r.quantil * 100:.0f} / IDHM P{(1 - r.quantil) * 100:.0f}\nn≥{r.minimo_avaliados}"
+              for r in table.itertuples()]
     ax.bar(range(len(table)), table["prioritarios"], color="#327c81")
     ax.set_xticks(range(len(table)), labels, rotation=45, ha="right", fontsize=8)
     ax.set_ylabel("Municípios selecionados")
@@ -562,6 +566,7 @@ def geometry_audit(geojson, base):
 
 def map_figure(geojson, result, column, title, output, filename, categories=None):
     """Mapa ilustrativo em coordenadas geográficas; anéis interiores preservados."""
+    from textwrap import fill
     import matplotlib.pyplot as plt
     from matplotlib.collections import PatchCollection
     from matplotlib.colors import Normalize
@@ -592,12 +597,12 @@ def map_figure(geojson, result, column, title, output, filename, categories=None
     collection = PatchCollection(patches, linewidths=0.08, edgecolors="#ffffff")
     if categories is not None:
         collection.set_facecolors(colors)
-        ax.legend(handles=[Patch(facecolor=color, label=label) for label, color in categories.items()],
+        ax.legend(handles=[Patch(facecolor=color, label=fill(label, width=42)) for label, color in categories.items()],
                   loc="lower left", fontsize=8, frameon=False)
     else:
         arr = np.ma.masked_invalid(values)
         collection.set_array(arr)
-        cmap = plt.get_cmap("YlOrRd").copy()
+        cmap = plt.get_cmap("YlOrRd_r" if column == "idhm" else "YlOrRd").copy()
         cmap.set_bad("#b9b9b9")
         collection.set_cmap(cmap)
         finite = np.asarray(values)[np.isfinite(values)]

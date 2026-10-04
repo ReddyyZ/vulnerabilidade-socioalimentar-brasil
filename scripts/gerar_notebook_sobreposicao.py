@@ -97,7 +97,7 @@ def build():
 
     **Estudo ecológico municipal — sobreposição de critérios.**
 
-    Pergunta: onde coincidem IVS elevado, risco alimentar estimado elevado no
+    Pergunta: onde coincidem IVS elevado, IDHM baixo, risco alimentar estimado elevado no
     CadInsan e déficit de altura/estatura para idade (DAI) elevado no SISVAN?
 
     IVS/IDHM: **2010**. CadInsan: **famílias, janeiro de 2025**.
@@ -119,13 +119,15 @@ def build():
     md("""
     ## 1. Parâmetros da análise
 
-    A regra principal exige **os três critérios simultaneamente**. Valores
-    maiores são desfavoráveis para IVS, CadInsan e DAI. IDHM baixo e DPI alto
-    contextualizam os resultados, sem exigir cinco critérios simultâneos.
+    A regra principal exige **os quatro critérios simultaneamente**: IVS,
+    CadInsan e DAI elevados, e IDHM baixo. DPI e CadÚnico contextualizam os
+    resultados, sem participar da seleção principal.
 
     P75 e mínimo de 100 avaliações são pontos de partida exploratórios, editáveis
     e sem caráter oficial. O corte do DAI é calculado sobre municípios com o
-    denominador mínimo; IVS e CadInsan usam seus próprios municípios disponíveis.
+    denominador mínimo; IVS, IDHM e CadInsan usam seus próprios municípios disponíveis.
+    O IDHM usa o percentil `100 × (1 − QUANTIL)`: com `0.75`, exige IDHM ≤ P25;
+    com `0.80`, IDHM ≤ P20. Nenhuma transformação do valor original é necessária.
     Cada município tem o mesmo peso nos quantis; empates no corte são incluídos.
     Por isso o grupo elevado pode conter mais de 25% dos municípios.
 
@@ -293,9 +295,10 @@ def build():
     md("""
     ## 5. Classificação exploratória
 
-    Ser prioritário exige IVS ≥ corte, CadInsan ≥ corte e DAI ≥ corte, além de
-    dados válidos e do mínimo de avaliações de altura. IDHM usa a cauda inferior
-    como informação contextual; DPI tem seu próprio mínimo de avaliações.
+    Ser prioritário exige IVS ≥ corte, IDHM ≤ corte, CadInsan ≥ corte e DAI ≥ corte,
+    além de dados válidos para os quatro critérios e do mínimo de avaliações de
+    altura. IDHM ausente impede a classificação principal. DPI é complementar
+    e tem seu próprio mínimo de avaliações.
     Informação insuficiente é diferente de ausência de risco.
     """)
     code("""
@@ -313,7 +316,7 @@ def build():
                      f"{total_recalculado} com as razões sem arredondamento usadas na análise."))
     display(comparacao_arredondamento.loc[comparacao_arredondamento["mudou_selecao"]])
     display(Markdown("**CadÚnico:** pessoas de junho/2026 são informação contextual; "
-                     "a regra principal permanece IVS + CadInsan + DAI, conforme o plano."))
+                     "a regra principal é IVS elevado + IDHM baixo + CadInsan elevado + DAI elevado."))
     """)
     md("""
     ## 6. Distribuições, associações e redundância
@@ -322,7 +325,7 @@ def build():
     Os gráficos de associação usam municípios elegíveis para a regra principal.
     A correlação usa pares disponíveis, com denominadores nutricionais acima do
     mínimo; cada par apresenta seu número de municípios. As linhas tracejadas
-    são os cortes exploratórios. Vermelho indica convergência dos três critérios.
+    são os cortes exploratórios. Vermelho indica convergência dos quatro critérios.
     """)
     code("""
     display(distribution_figure(classificados, PASTA_FIGURAS))
@@ -367,13 +370,14 @@ def build():
                            "05_disponibilidade", {"Elegível para regra": "#327c81", "Informação insuficiente": "#b9b9b9"}))
         plt.close("all")
         for coluna, titulo, nome in [("ivs", "IVS — contexto de 2010", "06_ivs"),
+                                    ("idhm", "IDHM — 2010; menor valor é mais desfavorável", "10_idhm"),
                                     ("cadinsan_pct", f"CadInsan (%) — {CENARIO_CADINSAN}", "07_cadinsan"),
                                     ("dai_pct", f"DAI (%) — altura com n ≥ {MINIMO_AVALIADOS}", "08_dai")]:
             if coluna == "dai_pct":
                 mapa[coluna] = mapa[coluna].where(mapa["avaliados_altura"] >= MINIMO_AVALIADOS)
             display(map_figure(geometria, mapa, coluna, titulo, PASTA_FIGURAS, nome))
             plt.close("all")
-        display(map_figure(geometria, classificados, "perfil", "Sobreposição de IVS, CadInsan e DAI", PASTA_FIGURAS,
+        display(map_figure(geometria, classificados, "perfil", "Sobreposição de IVS, IDHM, CadInsan e DAI", PASTA_FIGURAS,
                            "09_sobreposicao", GROUP_COLORS))
         plt.close("all")
     """)
@@ -382,6 +386,8 @@ def build():
     critérios. Áreas visualmente próximas não constituem teste de agrupamento
     espacial. A área dos polígonos não representa população ou quantidade de
     famílias. O mapa de disponibilidade não é mapa de cobertura populacional.
+    No mapa do IDHM, valores menores recebem as cores mais vermelhas; nos
+    mapas de IVS, CadInsan e DAI, são os valores maiores.
     """)
     md("""
     ## 8. Municípios selecionados e comparação regional
@@ -410,6 +416,8 @@ def build():
     municípios com o mínimo escolhido. Portanto a comparação avalia tanto a
     mudança de elegibilidade quanto a mudança da referência do corte. O Jaccard
     compara a interseção das listas com sua união, em relação à regra principal.
+    Percentis 75/80 nos indicadores elevados correspondem aos percentis 25/20
+    no IDHM; os quatro critérios permanecem obrigatórios em todas as especificações.
 
     A frequência de seleção é a fração das especificações testadas, **não uma
     probabilidade de risco ou medida de incerteza amostral**. Os cenários CadInsan
@@ -440,8 +448,9 @@ def build():
     selecionados = len(prioritarios)
     resumo_execucao = f"""# Síntese exploratória\n\nForam preservados {len(base):,} municípios na união das fontes; \
     {elegiveis:,} são elegíveis para a regra principal e {selecionados:,} apresentam convergência de IVS, \
-    CadInsan e DAI elevados ({selecionados / elegiveis * 100 if elegiveis else 0:.2f}% dos elegíveis).\n\n\
-    Parâmetros: percentil {QUANTIL * 100:.0f}, cenário `{CENARIO_CADINSAN}`, mínimo de \
+    CadInsan e DAI elevados e IDHM baixo ({selecionados / elegiveis * 100 if elegiveis else 0:.2f}% dos elegíveis).\n\n\
+    Parâmetros: percentil {QUANTIL * 100:.0f} para IVS/CadInsan/DAI, \
+    percentil {(1 - QUANTIL) * 100:.0f} para IDHM, cenário `{CENARIO_CADINSAN}`, mínimo de \
     {MINIMO_AVALIADOS} avaliações de altura. Os cortes são relativos e não classificações oficiais.\n\n\
     A seleção variou de {tabela_sensibilidade.prioritarios.min()} a \
     {tabela_sensibilidade.prioritarios.max()} municípios nas especificações testadas. \
@@ -490,7 +499,7 @@ def build():
         tabela.to_csv(destino / f"{nome}.csv", index=False, encoding="utf-8-sig")
     figuras_desta_execucao = ["01_distribuicoes", "02_associacoes", "03_correlacoes", "04_sensibilidade"]
     if GERAR_MAPAS:
-        figuras_desta_execucao += ["05_disponibilidade", "06_ivs", "07_cadinsan", "08_dai", "09_sobreposicao"]
+        figuras_desta_execucao += ["05_disponibilidade", "06_ivs", "07_cadinsan", "08_dai", "09_sobreposicao", "10_idhm"]
     (destino / "figuras").mkdir()
     for nome in figuras_desta_execucao:
         for extensao in ["png", "svg"]:
@@ -507,7 +516,9 @@ def build():
                  "sensibilidade": tabela_sensibilidade.to_dict("records"), "ambiente": ambiente,
                  "hashes_entrada": hashes_entrada.to_dict("records"), "malha": metadados_malha,
                  "codigo_analise_sha256": CODIGO_ANALISE_SHA256,
-                 "regra": "IVS >= corte e CadInsan >= corte e DAI >= corte; denominadores válidos",
+                 "regra": "IVS >= corte e IDHM <= corte e CadInsan >= corte e DAI >= corte; dados e denominadores válidos",
+                 "criterios_primarios": ["ivs", "idhm", "cadinsan", "dai"],
+                 "quantil_idhm": 1 - QUANTIL,
                  "limites": ["Estudo ecológico exploratório", "Sem inferência causal",
                              "Sem cobertura populacional calculada", "Referências temporais distintas",
                              "Pessoas CadÚnico de junho/2026 e famílias CadInsan de janeiro/2025 não são intercambiáveis"]}

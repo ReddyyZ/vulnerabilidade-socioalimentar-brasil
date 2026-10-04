@@ -11,6 +11,9 @@ são exploratórias e precisam de justificativa metodológica. Unidades e perío
 das fontes sociais foram documentados com o catálogo e o relatório oficial.
 Os percentuais do CadInsan são recalculados sem arredondamento, preservando os
 valores do CSV e auditando a diferença na seleção.
+O IDHM baixo também é obrigatório na sobreposição, por decisão da pesquisa:
+P25 quando `QUANTIL = 0.75`, e P20 quando `QUANTIL = 0.80`. CadÚnico e DPI
+permanecem contextuais. Não será produzido ranking composto.
 
 ## 1. Pergunta da pesquisa
 
@@ -145,6 +148,7 @@ Uma regra **exploratória** poderia selecionar municípios com:
 
 ```text
 IVS elevado
++ IDHM baixo
 + CadInsan proporcional elevado
 + DAI elevado
 + denominador nutricional que satisfaça o critério adotado
@@ -153,17 +157,27 @@ IVS elevado
 O símbolo `+` representa a coincidência dos critérios, não a soma numérica dos
 indicadores.
 
-O IDHM ajudaria a caracterizar e verificar a coerência do contexto social; DPI
-acrescentaria uma segunda leitura nutricional; e o CadÚnico dimensionaria a
-população cadastrada, quando sua unidade estiver confirmada. Usar todas as
-fontes não exige colocar todas dentro da mesma fórmula.
+O IDHM baixo é um quarto critério obrigatório, não apenas contextual. A maior
+restrição é intencional: selecionar a coincidência de vulnerabilidade social,
+baixo desenvolvimento humano, risco alimentar estimado e déficit de altura.
+IVS e IDHM não são tratados como evidências independentes; sua associação é
+avaliada nos gráficos e correlações. DPI acrescenta uma segunda leitura
+nutricional; CadÚnico dimensiona as pessoas cadastradas em junho/2026, sem
+substituir o denominador de famílias do CadInsan nem medir cobertura populacional.
 
-Além dos municípios com convergência dos três sinais, apresentar:
+O corte do IDHM é o percentil `100 × (1 − QUANTIL)` de todos os municípios
+com IDHM disponível, incluindo empates pelo operador `≤`. Não se altera o
+valor original. Ausência de IDHM impede a classificação principal. Com os
+parâmetros padrão, há 218 municípios selecionados, contra 274 na regra anterior
+de três critérios; 56 deixam de ser selecionados por não atenderem ao IDHM baixo.
 
-- municípios com vulnerabilidade social e risco alimentar elevados, sem DAI
+Além dos municípios com convergência dos quatro sinais, apresentar:
+
+- municípios com IVS elevado, IDHM baixo e risco alimentar elevado, sem DAI
   elevado;
 - municípios com DAI elevado fora desse grupo;
 - municípios cuja informação é insuficiente para a classificação.
+- outras combinações dos quatro critérios.
 
 Esses perfis podem gerar uma discussão mais rica do que uma lista única dos
 “piores municípios”. A ausência de DAI elevado não elimina a possibilidade de
@@ -172,8 +186,12 @@ risco alimentar.
 Os cortes por quartis seriam **critérios relativos da pesquisa**, não limites
 oficiais de risco. Testar também, por exemplo, o quinto mais desfavorável da
 distribuição na análise de sensibilidade.
+Nessa comparação, P75/P80 para IVS, CadInsan e DAI correspondem a P25/P20
+para IDHM. As 12 especificações atuais selecionam de 132 a 245 municípios.
 
 ### 5.2 Índice composto — alternativa para etapa posterior
+
+Alternativa não adotada na estratégia atual, que permanece sem ranking.
 
 Um índice composto facilitaria um ranking, mas exigiria justificar variáveis,
 padronização e pesos. IVS e IDHM podem carregar informação semelhante; CadInsan
@@ -254,7 +272,7 @@ Priorizar os seguintes produtos:
 
 1. Pergunta da pesquisa, recorte e papel de cada fonte.
 2. Mapa de disponibilidade dos dados e controle das correspondências municipais.
-3. Mapas de IVS, CadInsan e DAI.
+3. Mapas de IVS, IDHM, CadInsan e DAI.
 4. Um gráfico de associação entre dimensões.
 5. Mapa de sobreposição dos critérios adotados.
 6. Tabela de municípios selecionados, com valores e denominadores.
@@ -265,7 +283,7 @@ Priorizar os seguintes produtos:
 
 Preencher somente após a análise:
 
-> Foram identificados municípios com convergência de vulnerabilidade social,
+> Foram identificados municípios com convergência de vulnerabilidade social, baixo desenvolvimento humano,
 > risco alimentar estimado e déficit de crescimento infantil registrado no
 > SISVAN. A seleção permaneceu estável — ou variou — sob diferentes critérios.
 

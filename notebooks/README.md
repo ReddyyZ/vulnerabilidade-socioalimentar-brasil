@@ -21,12 +21,13 @@ fontes são restaurados na sessão e o processamento gera resultados separados.
 ## Regra inicial
 
 - IVS igual ou superior ao percentil 75 dos municípios com valor disponível.
+- IDHM igual ou inferior ao percentil 25 dos municípios com valor disponível.
 - CadInsan proporcional `com_PBF` recalculado sem arredondamento,
   igual ou superior ao percentil 75, com
   denominador informado positivo.
 - DAI igual ou superior ao percentil 75 dos municípios com pelo menos
   **100 avaliações de altura**.
-- Dados válidos para os três critérios; empates nos cortes são incluídos.
+- Dados válidos para os quatro critérios; empates nos cortes são incluídos.
 
 Esses cortes são exploratórios, não classificações oficiais. Cada município
 tem o mesmo peso no cálculo dos quantis. Os universos de referência dos
@@ -34,25 +35,33 @@ indicadores são distintos e aparecem na tabela de cortes.
 
 DAI/DPI e CadInsan são recalculados sem arredondamento na base analítica. Denominador zero
 produz ausência analítica (`NaN`), mantendo os valores do CSV em colunas próprias.
-IDHM, DPI e CadÚnico são indicadores contextuais. O JSON representa pessoas
-cadastradas em junho/2026; a regra principal permanece IVS + CadInsan + DAI.
+DPI e CadÚnico são indicadores contextuais. O JSON representa pessoas
+cadastradas em junho/2026; a regra principal é IVS elevado + IDHM baixo +
+CadInsan elevado + DAI elevado. O IDHM passou a ser obrigatório por decisão
+metodológica da pesquisa. Com `QUANTIL = 0.75`, o corte do IDHM é P25;
+com `0.80`, é P20. IDHM ausente implica informação insuficiente, não baixo risco.
 
 O notebook valida os hashes do catálogo contra as três bases sociais, conserva
 os percentuais originais em colunas `*_arquivo` e exporta a comparação entre
 seleções com percentuais arredondados e recalculados. Com os parâmetros padrão,
-são **274 municípios selecionados**; usar as proporções do CSV resultaria em 275.
+são **218 municípios selecionados**; usar as proporções do CSV resultaria em 219.
+A regra anterior, sem exigir IDHM baixo, selecionava 274. A nova regra retira
+56 municípios que atendiam aos três critérios, mas não ao corte do IDHM (≤ 0,599).
+As bases originais e os demais parâmetros permanecem iguais.
 
 ## Produtos
 
 - Base municipal integrada com códigos originais, indicadores, presença por
   fonte, elegibilidade, perfil e motivos de não classificação.
-- Lista de municípios com convergência dos três critérios, ordenada por UF e
+- Lista de municípios com convergência dos quatro critérios, ordenada por UF e
   nome, sem índice composto ou ranking sintético.
 - Distribuições, associações, correlações de Spearman e mapas de disponibilidade,
-  IVS, CadInsan, DAI e sobreposição.
+  IVS, IDHM, CadInsan, DAI e sobreposição. No mapa do IDHM, vermelho indica
+  valores menores; nos demais mapas numéricos, valores maiores.
 - Resumo regional por razão entre somas, com denominadores separados de DAI/DPI.
 - Sensibilidade a percentis 75/80, mínimos de 30/50/100 e cenários
-  `com_PBF`/`sem_PBF`, incluindo frequência de seleção e Jaccard.
+  `com_PBF`/`sem_PBF`, incluindo frequência de seleção e Jaccard. O IDHM usa
+  percentis 25/20, respectivamente; as 12 especificações selecionam de 132 a 245 municípios.
 - CSVs, figuras PNG/SVG, síntese Markdown e manifesto com parâmetros, hashes e
   versões do ambiente, reunidos em um ZIP por execução.
 - Validação do catálogo e auditoria do efeito do arredondamento, com os
