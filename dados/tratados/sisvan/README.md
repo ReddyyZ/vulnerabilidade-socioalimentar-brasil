@@ -2,6 +2,9 @@
 
 Esta pasta contém os produtos consolidados da coleta municipal do Relatório Público do SISVAN. Os arquivos oficiais originais são preservados separadamente em `dados/brutos/sisvan/`.
 
+A documentação completa da base principal de crianças menores de 5 anos está em
+[`criancas_menores_5/README.md`](criancas_menores_5/README.md).
+
 ## Recorte padrão
 
 A configuração padrão está em `configuracoes/sisvan/coletas.json` e coleta:

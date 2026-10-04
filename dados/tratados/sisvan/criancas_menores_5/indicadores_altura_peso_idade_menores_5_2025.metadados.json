@@ -1,0 +1,37 @@
+{
+  "fonte": "https://sisaps.saude.gov.br/sisvan/relatoriopublico/",
+  "arquivo": "dados/tratados/sisvan/criancas_menores_5/indicadores_altura_peso_idade_menores_5_2025.csv",
+  "tipo": "produto derivado infantil com dois indices independentes",
+  "fase": "crianca",
+  "faixa_etaria": "0_a_menor_5_anos",
+  "ano": 2025,
+  "formulas": {
+    "deficit_estatura": "Altura Muito Baixa para a Idade + Altura Baixa para a Idade",
+    "deficit_peso_idade": "Peso Muito Baixo para a Idade + Peso Baixo para a Idade"
+  },
+  "denominadores": {
+    "deficit_estatura": "Total avaliado - Altura X Idade",
+    "deficit_peso_idade": "Total avaliado - Peso X Idade"
+  },
+  "fontes": [
+    {
+      "fase": "crianca",
+      "indice": "altura_por_idade",
+      "faixa_etaria": "0_a_menor_5_anos",
+      "arquivo": "dados/tratados/sisvan/altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv"
+    },
+    {
+      "fase": "crianca",
+      "indice": "peso_por_idade",
+      "faixa_etaria": "0_a_menor_5_anos",
+      "arquivo": "dados/tratados/sisvan/peso_por_idade/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_2025.csv"
+    }
+  ],
+  "linhas": 5571,
+  "gerado_em": "2026-10-04T10:45:10-03:00",
+  "limitacoes": [
+    "Os dois deficits nao podem ser somados entre si.",
+    "Os relatorios agregados nao identificam a intersecao de criancas entre os indices.",
+    "Peso elevado para a idade nao equivale a diagnostico de sobrepeso ou obesidade."
+  ]
+}
