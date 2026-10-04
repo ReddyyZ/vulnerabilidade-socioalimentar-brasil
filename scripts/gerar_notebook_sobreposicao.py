@@ -59,8 +59,8 @@ def payload():
     files = {str(p.relative_to(root)): p for p in root.rglob("*") if p.is_file()}
     files["documentacao/fonte_dados.json"] = ROOT / "fonte_dados.json"
     files["documentacao/dataset_catalogue.json"] = ROOT / "dataset_catalogue.json"
-    files["documentacao/README_SISVAN.md"] = ROOT / "dados/tratados/sisvan/criancas_menores_5/README.md"
-    files["documentacao/SISVAN.metadados.json"] = ROOT / "dados/tratados/sisvan/criancas_menores_5/indicadores_altura_peso_idade_menores_5_2025.metadados.json"
+    files["documentacao/README_SISVAN.md"] = root / "sisvan/README.md"
+    files["documentacao/SISVAN.metadados.json"] = root / "sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.metadados.json"
     for path in SUPPORT.glob("*"):
         if path.is_file():
             files[f"apoio/ibge/{path.name}"] = path
@@ -94,6 +94,7 @@ def build():
         return cell
 
     sources = json.loads((ROOT / "fonte_dados.json").read_text(encoding="utf-8"))
+    sisvan_meta = json.loads((ROOT / "dados/pesquisa/sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.metadados.json").read_text())
 
     md("""
     # Áreas de risco alimentar e vulnerabilidade social no Brasil
@@ -106,7 +107,7 @@ def build():
     **Objetivo da análise:** identificar municípios onde coincidem IVS elevado,
     IDHM baixo, risco alimentar estimado elevado no CadInsan e déficit de
     altura para idade elevado nas crianças acompanhadas pelo SISVAN.
-    CadÚnico e déficit de peso para idade ajudam a caracterizar esses territórios.
+    CadÚnico ajuda a caracterizar esses territórios.
 
     A unidade de análise é o **município**, não a pessoa ou a família. A
     sobreposição identifica convergência de indicadores, sem ranking composto,
@@ -127,15 +128,18 @@ def build():
     | IVS e IDHM | [Atlas IVS / Ipea](http://ivs.ipea.gov.br/index.php/pt/planilha); IDHM do Atlas do Desenvolvimento Humano (PNUD, Ipea e FJP) | [CSV publicado por Cozinhas Solidárias]({sources['atlasivs_municipios_2010.csv']}) | 2010; índices municipais | 5.565 |
     | CadÚnico | [MDS / SAGI](https://aplicacoes.mds.gov.br/sagi/servicos/misocial) | [JSON publicado por Cozinhas Solidárias]({sources['municipios-cadunico.json']}) | Junho/2026; pessoas cadastradas | 5.564 |
     | CadInsan | [MDS — relatório CadInsan 2025](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf) | [CSV publicado por Cozinhas Solidárias]({sources['CADINSAN_2025_dados_municipais.csv']}) | Janeiro/2025; famílias do universo analisado | 5.570 |
-    | SISVAN | Ministério da Saúde — Sistema de Vigilância Alimentar e Nutricional | Coleta direta dos [relatórios públicos]({sources['sisvan_relatorios']}) de Altura X Idade e Peso X Idade | 2025; crianças de 0 a menos de 5 anos acompanhadas pelo sistema | 5.571 |
+    | SISVAN | Ministério da Saúde — Sistema de Vigilância Alimentar e Nutricional | Coleta direta dos [relatórios públicos]({sources['sisvan_relatorios']}) de Altura X Idade | 2025; crianças de 0 a menos de 5 anos acompanhadas pelo sistema | {sisvan_meta['linhas']:,} |
 
     **Procedência:** as três bases sociais foram obtidas do
     [repositório de Cozinhas Solidárias](https://github.com/TriangulosTecnologia/cozsolidarias),
     não extraídas diretamente dos portais oficiais nesta pesquisa. Seus períodos
     e unidades foram conferidos no catálogo que acompanha os arquivos. O
     relatório oficial do MDS complementa a referência mensal do CadInsan.
-    A base SISVAN utilizada combina os dois relatórios coletados; os percentuais
-    de déficit são derivados das contagens originais pelas fórmulas apresentadas abaixo.
+    SISVAN foi baixado novamente em **{sisvan_meta['gerado_em'][:10]}**, nas 27 UFs,
+    usando o coletor atualizado. Os XLSX oficiais são preservados sem alteração.
+    O CSV consolida as linhas municipais e achata cabeçalhos multinível; mantém
+    os valores de contagem e os percentuais das células, sem DAI pré-calculado.
+    **DAI é calculado nesta análise**, não na base de entrada.
 
     **Apoio cartográfico:** malha municipal simplificada obtida diretamente da
     [API v4 do IBGE](https://servicodados.ibge.gov.br/api/docs/malhas?versao=4).
@@ -150,7 +154,7 @@ def build():
     ## 2. Estratégia e parâmetros da análise
 
     A regra principal exige **os quatro critérios simultaneamente**: IVS,
-    CadInsan e DAI elevados, e IDHM baixo. DPI e CadÚnico contextualizam os
+    CadInsan e DAI elevados, e IDHM baixo. CadÚnico contextualiza os
     resultados, sem participar da seleção principal.
 
     IVS ≥ **0,401** e IDHM < **0,600** são cortes fixos, correspondentes a
@@ -162,7 +166,7 @@ def build():
     exploratórios, editáveis e sem caráter oficial. O corte do DAI é calculado
     sobre municípios com o denominador mínimo; CadInsan usa seu universo válido.
     Esses quantis são nacionais, não calculados apenas sobre municípios que
-    atendem aos cortes sociais. DPI mantém o quantil como informação complementar.
+    atendem aos cortes sociais.
     O percentil 75 delimita aproximadamente os 25% maiores valores municipais,
     não 75% da população. Cada município tem o mesmo peso; empates são incluídos.
     O mínimo de 100 avaliações é uma precaução operacional, não uma exigência
@@ -176,7 +180,7 @@ def build():
     não substituem esse denominador de famílias.
     """)
     code("""
-    QUANTIL = 0.75  # CadInsan/DAI e DPI complementar
+    QUANTIL = 0.75  # CadInsan e DAI
     MINIMO_AVALIADOS = 100
     CENARIO_CADINSAN = "com_PBF"  # opções: "com_PBF", "sem_PBF"
     QUANTIS_SENSIBILIDADE = [0.75, 0.80]
@@ -277,37 +281,46 @@ def build():
     $$DAI(\%)=100\times\frac{N(\text{altura muito baixa})+N(\text{altura baixa})}
     {N(\text{avaliados em altura por idade})}$$
 
-    $$DPI(\%)=100\times\frac{N(\text{peso muito baixo})+N(\text{peso baixo})}
-    {N(\text{avaliados em peso por idade})}$$
-
     $$CadInsan_{cenario}(\%)=100\times
     \frac{Cadinsan\_absoluto\_{cenario}}{Cadastros\_Cadunico}$$
 
-    **DAI** é o percentual de déficit de altura para idade; **DPI**, o percentual
-    de déficit de peso para idade. CadInsan usa famílias em risco estimado no
+    **DAI** é o percentual de déficit de altura para idade.
+    CadInsan usa famílias em risco estimado no
     numerador e famílias do universo analisado no denominador.
 
     Os percentuais são recalculados **sem arredondamento** para evitar empates
     artificiais nos cortes; os valores de origem permanecem preservados.
     Denominador zero gera percentual indefinido, não ausência de déficit.
-    DAI e DPI não podem ser somados: a interseção das crianças entre os índices
-    não é identificada nos relatórios agregados, e seus denominadores são separados.
+
+    **Leitura das contagens SISVAN:** o exportador apresenta algumas contagens
+    como números decimais (por exemplo, `1.02` para 1.020). O notebook interpreta
+    a escala por município, exigindo soma das três categorias igual ao total e
+    concordância com os percentuais oficiais (tolerância de 0,011 ponto percentual).
+    Falha de conciliação interrompe a análise. Quando mais de uma escala é
+    compatível, adota-se o menor total e registra-se a ambiguidade explicitamente.
+    Os valores da fonte e a auditoria são exportados; a entrada nunca é reescrita.
+    A ambiguidade pode afetar contagens e elegibilidade pelo mínimo de avaliações,
+    embora escalas uniformes não alterem o DAI percentual. Esta é uma limitação
+    do arquivo agregado, não uma identificação individual de crianças.
     """)
     code("""
     qualidade_sisvan = pd.DataFrame({
-        "controle": ["Sem avaliações de altura", "Sem avaliações de peso",
-                     "Denominadores distintos", "Altura abaixo do mínimo principal",
-                     "Peso abaixo do mínimo principal"],
+        "controle": ["Sem avaliações de altura", "Altura abaixo do mínimo principal",
+                     "Contagens com escala interpretada", "Mais de uma escala compatível"],
         "municipios": [int(base["avaliados_altura"].eq(0).sum()),
-                       int(base["avaliados_peso"].eq(0).sum()),
-                       int((base["tem_sisvan"] & base["avaliados_altura"].ne(base["avaliados_peso"])).sum()),
                        int(base["avaliados_altura"].between(1, MINIMO_AVALIADOS - 1).sum()),
-                       int(base["avaliados_peso"].between(1, MINIMO_AVALIADOS - 1).sum())]})
+                       int(base["sisvan_escala_alterada"].fillna(False).sum()),
+                       int(base["sisvan_escalas_compativeis"].gt(1).sum())]})
     display(qualidade_sisvan)
+    colunas_auditoria = ["codigo_ibge_6", "municipio", "uf", "avaliados_altura",
+                        "altura_muito_baixa_n", "altura_baixa_n", "altura_adequada_n",
+                        "sisvan_escala_alterada", "sisvan_escalas_compativeis"]
+    colunas_auditoria += [c for c in base if c.endswith(("_valor_fonte", "_percentual_fonte"))]
+    interpretacao_sisvan = base.loc[base["tem_sisvan"], colunas_auditoria].copy()
     display(base.loc[base["avaliados_altura"].eq(0),
-                     ["municipio", "uf", "dai_pct_arquivo", "dai_pct", "avaliados_altura"]])
+                     ["municipio", "uf", "dai_pct", "avaliados_altura"]])
     totais = []
-    for indicador, denominador in [("dai", "avaliados_altura"), ("dpi", "avaliados_peso")]:
+    for indicador, denominador in [("dai", "avaliados_altura")]:
         n = base[f"{indicador}_n"].sum()
         d = base[denominador].sum()
         totais.append({"indicador": indicador.upper(), "numerador": n,
@@ -326,8 +339,7 @@ def build():
 
     Ser prioritário exige IVS ≥ 0,401, IDHM < 0,600, CadInsan ≥ corte e DAI ≥ corte,
     além de dados válidos para os quatro critérios e do mínimo de avaliações de
-    altura. IDHM ausente impede a classificação principal. DPI é complementar
-    e tem seu próprio mínimo de avaliações.
+    altura. IDHM ausente impede a classificação principal.
     Informação insuficiente é diferente de ausência de risco.
     """)
     code("""
@@ -417,21 +429,39 @@ def build():
     md("""
     ## 8. Municípios selecionados e comparação regional
 
-    A tabela exibe os municípios com convergência e os indicadores que justificam
-    sua seleção. Está ordenada por UF e município, **sem ranking composto**.
-    As regiões apresentam DAI/DPI pela razão entre somas de numeradores e
-    denominadores, usando todos os registros válidos do respectivo índice.
+    **Indicadores da seleção:** IVS, IDHM, CadInsan e DAI, com os denominadores
+    de famílias do CadInsan e avaliações de altura. As flags repetidas são omitidas.
+
+    **Caracterização dos municípios selecionados:** pessoas cadastradas no
+    CadÚnico em junho/2026 e famílias em risco estimado no cenário CadInsan
+    escolhido, de janeiro/2025. São unidades e períodos distintos, não somáveis.
+    As tabelas seguem a mesma ordem por UF e município, **sem ranking composto**.
+
+    **Comparação regional complementar:** DAI pela razão entre somas de
+    numeradores e denominadores de altura, usando todos os registros válidos,
+    não apenas os municípios selecionados.
     """)
     code("""
-    colunas_apresentacao = ["codigo_ibge_6", "codigo_ibge_7", "municipio", "uf", "ivs", "idhm",
-                           "cadinsan_pct", "cadinsan_n", "dai_pct", "avaliados_altura",
-                           "dpi_pct", "avaliados_peso", "cadunico_pessoas_2026_06", "cadastros_cadunico_cadinsan",
-                           "criterio_idhm", "criterio_dpi"]
     prioritarios = classificados.loc[classificados["prioritario"].fillna(False)].sort_values(["uf", "municipio"])
+    colunas_selecao = {
+        "municipio": "Município", "uf": "UF", "ivs": "IVS", "idhm": "IDHM",
+        "cadinsan_pct": "CadInsan (%)", "dai_pct": "DAI (%)",
+        "cadastros_cadunico_cadinsan": "Famílias no universo CadInsan",
+        "avaliados_altura": "Avaliações de altura"}
+    colunas_caracterizacao = {
+        "municipio": "Município", "uf": "UF",
+        "cadunico_pessoas_2026_06": "Pessoas no CadÚnico — jun/2026",
+        "cadinsan_n": "Famílias em risco estimado — jan/2025"}
+    indicadores_selecao = prioritarios[list(colunas_selecao)].rename(columns=colunas_selecao)
+    caracterizacao_municipios = prioritarios[list(colunas_caracterizacao)].rename(columns=colunas_caracterizacao)
     print("Municípios com convergência:", len(prioritarios))
-    display(prioritarios[colunas_apresentacao].head(30))
-    print("Prévia dos primeiros 30; a tabela completa será exportada.")
+    display(Markdown("### Indicadores da seleção"))
+    display(indicadores_selecao.head(30))
+    display(Markdown(f"### Caracterização dos municípios selecionados\\n\\nCenário CadInsan: `{CENARIO_CADINSAN}`."))
+    display(caracterizacao_municipios.head(30))
+    print("Prévia dos mesmos 30 municípios; a exportação mantém a lista completa e os nomes originais das colunas.")
     resumo_regional = regional_summary(classificados)
+    display(Markdown("### Comparação regional — DAI"))
     display(resumo_regional)
     """)
     md("""
@@ -512,7 +542,8 @@ def build():
     tabelas = {"base_analitica": classificados, "municipios_prioritarios": prioritarios,
                "cortes": cortes, "controle_integracao": controle_integracao,
                "municipios_sem_correspondencia": ausencias, "sem_classificacao": sem_classificacao,
-               "qualidade_sisvan": qualidade_sisvan, "controle_geometria": controle_geometria,
+               "qualidade_sisvan": qualidade_sisvan, "interpretacao_sisvan": interpretacao_sisvan,
+               "controle_geometria": controle_geometria,
                "resumo_regional": resumo_regional, "sensibilidade": tabela_sensibilidade,
                "estabilidade": estabilidade, "dicionario_variaveis": dictionary(),
                "validacao_catalogo": validacao_catalogo,
@@ -532,7 +563,9 @@ def build():
     ambiente = {"python": platform.python_version(), "pandas": pd.__version__, "numpy": np.__version__,
                 "matplotlib": matplotlib.__version__, "scipy": scipy.__version__}
     manifesto = {"executado_em": datetime.now(timezone.utc).isoformat(),
-                 "versao_bases": "3391236", "quantil": QUANTIL, "minimo_avaliados": MINIMO_AVALIADOS,
+                 "proveniencia_sisvan": sisvan_metadata(PASTA_DADOS),
+                 "formula_dai_pct": "100 * (altura_muito_baixa_n + altura_baixa_n) / avaliados_altura; total zero gera NaN",
+                 "quantil": QUANTIL, "minimo_avaliados": MINIMO_AVALIADOS,
                  "cenario_cadinsan": CENARIO_CADINSAN, "cortes": cortes.to_dict("records"),
                  "proveniencia_catalogo": proveniencia_catalogo,
                  "formula_cadinsan_pct": "100 * Cadinsan_absoluto_cenario / Cadastros_Cadunico; sem arredondamento",
@@ -545,7 +578,7 @@ def build():
                  "criterios_primarios": ["ivs", "idhm", "cadinsan", "dai"],
                  "cortes_sociais_fixos": {indicador: {"corte": valor, "operador": operador}
                                          for indicador, (valor, operador) in FIXED_CUTS.items()},
-                 "indicadores_com_quantil": ["cadinsan", "dai", "dpi"],
+                 "indicadores_com_quantil": ["cadinsan", "dai"],
                  "limites": ["Estudo ecológico exploratório", "Sem inferência causal",
                              "Sem cobertura populacional calculada", "Referências temporais distintas",
                              "Pessoas CadÚnico de junho/2026 e famílias CadInsan de janeiro/2025 não são intercambiáveis"]}

@@ -25,7 +25,7 @@ Por isso, é metodologicamente mais seguro tratar:
 
 Evitar afirmar que a vulnerabilidade social causou diretamente determinado resultado nutricional apenas com base em correlações ou sobreposição espacial.
 
-## 3. Insight central sobre o SISVAN: altura e peso por idade
+## 3. Insight central sobre o SISVAN: altura por idade
 
 ### 3.1 Indicador principal recomendado
 
@@ -49,17 +49,18 @@ Déficit de estatura (%) =
 
 O déficit de estatura para a idade representa um comprometimento de crescimento de natureza geralmente crônica e acumulada. Por esse motivo, possui maior coerência conceitual com a análise conjunta de pobreza, privação social, IVS elevado e IDHM baixo.
 
-### 3.2 Peso por idade como indicador complementar padrão
+### 3.2 Peso por idade: opção preservada, fora da análise vigente
 
-Para o mesmo recorte de crianças de 0 a menos de 5 anos, coletar também
-**Peso por idade**. As categorias oficiais atuais são:
+Não coletar peso por padrão e não incluir DPI na análise atual. O suporte e
+os arquivos históricos permanecem disponíveis para outro estudo. Para esse
+uso opcional, as categorias oficiais de **Peso por idade** são:
 
 - Peso Muito Baixo para a Idade;
 - Peso Baixo para a Idade;
 - Peso Adequado ou Eutrófico;
 - Peso Elevado para a Idade.
 
-Calcular separadamente a prevalência de déficit de peso para idade:
+Se esse outro estudo for realizado, calcular separadamente:
 
 ```text
 Déficit de peso para idade (%) =
@@ -78,11 +79,12 @@ automaticamente como sobrepeso ou obesidade.
 | Índice | Interpretação principal | Papel na pesquisa |
 |---|---|---|
 | Altura por idade | Comprometimento crônico ou acumulado do crescimento | Desfecho nutricional principal |
-| Peso por idade | Déficit ponderal que pode refletir baixa estatura, baixo peso corporal ou ambos | Indicador complementar padrão |
+| Peso por idade | Déficit ponderal que pode refletir baixa estatura, baixo peso corporal ou ambos | Opcional; excluído da análise vigente |
 
 Regras obrigatórias:
 
-- utilizar a consulta direta de `0 a < 5 anos` para os dois índices;
+- utilizar a consulta direta de `0 a < 5 anos` para altura; regras abaixo sobre
+  dois índices aplicam-se apenas a estudos opcionais, não à análise vigente;
 - manter um denominador para Altura X Idade e outro para Peso X Idade;
 - não somar déficit de estatura com déficit de peso;
 - não afirmar quantas crianças possuem simultaneamente os dois déficits, pois
@@ -108,7 +110,7 @@ Esses nomes não são sinônimos e não devem ser trocados na base bruta. O peso
 Assim, para a pergunta desta pesquisa:
 
 - usar **déficit de estatura para idade** como resultado principal de privação nutricional crônica;
-- usar **déficit de peso para idade** como resultado complementar padrão;
+- manter peso por idade como opção para outro estudo, não como complementar atual;
 - reservar **magreza por IMC para idade** para análise opcional ou de sensibilidade;
 - não usar **baixo peso para idade** como único marcador de risco alimentar.
 
@@ -444,5 +446,23 @@ A regra anterior de quatro critérios, com quartis também para IVS/IDHM,
 selecionava 218 municípios. Ao mudar somente esses dois cortes para fixos,
 a seleção passa a 242. CadInsan/DAI continuam com quantis, e o mínimo principal
 continua 100 avaliações; não foi adotado corte fixo de 20% para DAI.
-DPI e CadÚnico continuam complementares. Na sensibilidade, os quatro critérios
+CadÚnico continua contextual; DPI foi retirado integralmente. Na sensibilidade, os quatro critérios
 são mantidos, e a seleção varia de 179 a 270 municípios nas 12 especificações.
+
+## Atualização da entrada SISVAN: altura sem derivados
+
+Nova coleta de 2025 nas 27 UFs, realizada em 4 de outubro de 2026 com o coletor
+5.0. O padrão passa a ser somente Altura X Idade, menores de cinco anos. Não
+há DAI, DPI, peso ou novas colunas de filtro na entrada. O coletor não gera mais
+o produto automático combinado. XLSX exatos e produtos antigos são preservados.
+
+O CSV achata cabeçalhos multinível e mantém contagens como aparecem nas células,
+inclusive decimais do exportador. Filtros e hashes ficam no sidecar. O notebook
+interpreta escalas, valida soma e percentuais e calcula DAI sem arredondamento,
+com ausência quando o total é zero. Múltiplas soluções são auditadas e adota-se
+o menor total coerente; a ambiguidade pode afetar contagens e mínimo de avaliações.
+
+Ver [README da entrada SISVAN](dados/pesquisa/sisvan/README.md) e
+[decisão de arquitetura](docs/arquitetura/DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md).
+As contagens interpretadas e os 242 municípios selecionados permaneceram iguais
+após a nova coleta; isso foi conferido, não presumido.

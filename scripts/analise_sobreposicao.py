@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal, InvalidOperation
 from itertools import product
 from pathlib import Path
 
@@ -15,7 +16,7 @@ DATA_FILES = {
     "ivs_idhm": "ivs_idhm/atlasivs_municipios_2010.csv",
     "cadunico": "cadunico/municipios-cadunico.json",
     "cadinsan": "cadinsan/CADINSAN_2025_dados_municipais.csv",
-    "sisvan": "sisvan/indicadores_altura_peso_idade_menores_5_2025.csv",
+    "sisvan": "sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv",
 }
 CATALOGUE_DATASETS = {
     "ivs_idhm": "municipios_ivs",
@@ -157,6 +158,72 @@ def read_sources(directory):
     return sources, hashes
 
 
+def sisvan_metadata(directory):
+    path = Path(directory) / DATA_FILES["sisvan"]
+    metadata = json.loads(path.with_suffix(".metadados.json").read_text(encoding="utf-8"))
+    expected = {"ano": 2025, "fase": "crianca", "indice": "altura_por_idade",
+                "faixa_etaria": "0_a_menor_5_anos", "nu_idade_inicio": "0", "nu_idade_fim": "5"}
+    if any(metadata.get(key) != value for key, value in expected.items()):
+        raise ValueError("SISVAN fora do recorte previsto: altura, 2025, menores de 5 anos.")
+    if metadata.get("indicadores_derivados") != []:
+        raise ValueError("A entrada SISVAN deve conter somente valores da fonte.")
+    if metadata.get("sha256_csv") != hashlib.sha256(path.read_bytes()).hexdigest():
+        raise ValueError("Metadados SISVAN não correspondem ao CSV.")
+    if set(metadata.get("ufs", [])) != {uf for uf, _ in UF_REGIONS.values()}:
+        raise ValueError("SISVAN: coleta nacional incompleta.")
+    return metadata
+
+
+def interpret_sisvan_counts(values, percentages, code):
+    """Interpreta artefatos numéricos sem modificar as células de entrada.
+
+    Inteiros admitem a escala original ou ×1000; decimais do XLSX são
+    interpretados como milhares. Exige soma exata e percentuais a 0,011 pp.
+    Quando mais de uma escala é possível, conserva o menor total coerente,
+    explicitamente sinalizando a ambiguidade para auditoria.
+    """
+    candidates = []
+    for raw in values:
+        text = str(raw).strip()
+        try:
+            value = Decimal(text)
+        except InvalidOperation as exc:
+            raise ValueError(f"{code}: contagem SISVAN não numérica: {raw!r}") from exc
+        if not value.is_finite() or value < 0:
+            raise ValueError(f"{code}: contagem SISVAN inválida: {raw!r}")
+        if value == value.to_integral_value():
+            integer = int(value)
+            candidates.append([integer, integer * 1000] if integer else [0])
+        else:
+            scaled = value * 1000
+            if scaled != scaled.to_integral_value():
+                raise ValueError(f"{code}: escala decimal SISVAN irresolvível: {raw!r}")
+            candidates.append([int(scaled)])
+    pcts = []
+    for raw in percentages:
+        text = str(raw).strip()
+        pct = 0.0 if text in {"-", "–", "—"} else float(text.rstrip("%").replace(",", "."))
+        if not np.isfinite(pct) or not 0 <= pct <= 100:
+            raise ValueError(f"{code}: percentual SISVAN inválido: {raw!r}")
+        pcts.append(pct)
+    solutions = []
+    for counts in product(*candidates[:-1]):
+        total = sum(counts)
+        if total not in candidates[-1]:
+            continue
+        if total == 0:
+            if any(pcts):
+                continue
+        elif not all(abs(n / total * 100 - pct) <= 0.011 for n, pct in zip(counts, pcts)):
+            continue
+        solutions.append((*counts, total))
+    if not solutions:
+        raise ValueError(f"{code}: contagens não conciliam soma e percentuais oficiais.")
+    chosen = min(solutions, key=lambda item: item[-1])
+    changed = any(Decimal(str(raw)) != n for raw, n in zip(values, chosen))
+    return chosen, changed, len(solutions)
+
+
 def prepare_base(directory):
     """Normaliza cópias em memória e integra por prefixos únicos, com auditoria."""
     sources, hashes = read_sources(directory)
@@ -194,32 +261,32 @@ def prepare_base(directory):
         tables["cadinsan"].rename(
             columns={f"cadinsan_pct_{scenario}": f"cadinsan_pct_{scenario}_arquivo"}, inplace=True)
     sv = sources["sisvan"]
-    if not sv["Ano"].eq("2025").all() or not sv["Faixa etária"].eq("0 a < 5 anos").all():
-        raise ValueError("SISVAN fora do recorte previsto: 2025, menores de 5 anos.")
-    if not sv["Fase da vida"].eq("CRIANÇA").all():
-        raise ValueError("SISVAN contém outra fase da vida.")
+    metadata = sisvan_metadata(directory)
+    if list(sv.columns) != metadata["colunas"] or len(sv) != metadata["linhas"]:
+        raise ValueError("SISVAN: esquema ou número de linhas difere dos metadados.")
     tables["sisvan"] = pd.DataFrame({
         "codigo_sisvan_original": codes(sv["Código IBGE"], 6, "SISVAN"),
         "municipio_sisvan": sv["Município"], "uf_sisvan": sv["UF"],
-        "ano_sisvan": numeric(sv["Ano"], "Ano"),
+        "ano_sisvan": metadata["ano"],
     })
     counts = {
         "Altura Muito Baixa para a Idade - Quantidade": "altura_muito_baixa_n",
         "Altura Baixa para a Idade - Quantidade": "altura_baixa_n",
         "Altura Adequada para a Idade - Quantidade": "altura_adequada_n",
-        "Total avaliado - Altura X Idade": "avaliados_altura",
-        "Peso Muito Baixo para a Idade - Quantidade": "peso_muito_baixo_n",
-        "Peso Baixo para a Idade - Quantidade": "peso_baixo_n",
-        "Peso Adequado ou Eutrófico - Quantidade": "peso_adequado_n",
-        "Peso Elevado para a Idade - Quantidade": "peso_elevado_n",
-        "Total avaliado - Peso X Idade": "avaliados_peso",
-        "Déficit de estatura - Quantidade": "dai_n_arquivo",
-        "Déficit de peso para idade - Quantidade": "dpi_n_arquivo",
-        "Déficit de estatura - %": "dai_pct_arquivo",
-        "Déficit de peso para idade - %": "dpi_pct_arquivo",
+        "Total": "avaliados_altura",
     }
+    percentages = [original.replace(" - Quantidade", " - %") for original in list(counts)[:3]]
+    interpreted = [interpret_sisvan_counts(
+        [row[c] for c in counts], [row[c] for c in percentages], row["Código IBGE"])
+        for _, row in sv.iterrows()]
     for original, new in counts.items():
-        tables["sisvan"][new] = numeric(sv[original], original)
+        tables["sisvan"][new + "_valor_fonte"] = sv[original]
+    for index, new in enumerate(counts.values()):
+        tables["sisvan"][new] = [item[0][index] for item in interpreted]
+    for original, new in zip(percentages, list(counts.values())[:3]):
+        tables["sisvan"][new + "_percentual_fonte"] = sv[original]
+    tables["sisvan"]["sisvan_escala_alterada"] = [item[1] for item in interpreted]
+    tables["sisvan"]["sisvan_escalas_compativeis"] = [item[2] for item in interpreted]
     for source, table in tables.items():
         original = next(c for c in table if c.startswith("codigo_"))
         table["codigo_ibge_6"] = table[original].str[:6]
@@ -251,7 +318,7 @@ def prepare_base(directory):
     if base.loc[sv_rows, "uf"].ne(base.loc[sv_rows, "uf_sisvan"]).any():
         raise ValueError("UF SISVAN incompatível com o prefixo municipal.")
 
-    nonnegative = [c for c in base if c.endswith("_n") or c.startswith("avaliados_")]
+    nonnegative = [c for c in base if c.endswith("_n") or c == "avaliados_altura"]
     nonnegative += ["cadunico_valor_original", "cadastros_cadunico_cadinsan",
                     "cadinsan_n_com_PBF", "cadinsan_n_sem_PBF"]
     for column in nonnegative:
@@ -260,19 +327,12 @@ def prepare_base(directory):
             raise ValueError(f"{column}: contagem negativa ou não inteira.")
     for prefix, parts, total in (
         ("dai", ["altura_muito_baixa_n", "altura_baixa_n", "altura_adequada_n"], "avaliados_altura"),
-        ("dpi", ["peso_muito_baixo_n", "peso_baixo_n", "peso_adequado_n", "peso_elevado_n"], "avaliados_peso"),
     ):
         component_total = base[parts].sum(axis=1, min_count=len(parts))
         if not np.allclose(component_total[sv_rows], base.loc[sv_rows, total], equal_nan=False):
             raise ValueError(f"Soma das categorias incompatível com {total}.")
         base[f"{prefix}_n"] = base[parts[:2]].sum(axis=1, min_count=2)
-        if not np.allclose(base.loc[sv_rows, f"{prefix}_n"], base.loc[sv_rows, f"{prefix}_n_arquivo"]):
-            raise ValueError(f"Numerador {prefix} incompatível com o CSV.")
         base[f"{prefix}_pct"] = base[f"{prefix}_n"].div(base[total].where(base[total] > 0)) * 100
-        valid = base[total] > 0
-        if not np.allclose(base.loc[valid, f"{prefix}_pct"],
-                           base.loc[valid, f"{prefix}_pct_arquivo"], atol=0.011):
-            raise ValueError(f"Percentual {prefix} incompatível com a fórmula.")
         check_range(base[f"{prefix}_pct"], 0, 100, prefix)
     for scenario in ("com_PBF", "sem_PBF"):
         check_range(base[f"cadinsan_pct_{scenario}_arquivo"], 0, 100, "CadInsan no arquivo")
@@ -315,7 +375,6 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
         ("cadinsan", "cadinsan_pct", result["cadastros_cadunico_cadinsan"] > 0),
         ("dai", "dai_pct", result["avaliados_altura"] >= min_evaluated),
         ("idhm", "idhm", pd.Series(True, index=result.index)),
-        ("dpi", "dpi_pct", result["avaliados_peso"] >= min_evaluated),
     ]
     thresholds = []
     for label, column, eligible in specs:
@@ -422,7 +481,7 @@ def regional_summary(result):
                   "prioritarios": int(table["prioritario"].fillna(False).sum())}
         record["pct_prioritarios_entre_elegiveis"] = (
             record["prioritarios"] / record["elegiveis"] * 100 if record["elegiveis"] else np.nan)
-        for label, total in (("dai", "avaliados_altura"), ("dpi", "avaliados_peso")):
+        for label, total in (("dai", "avaliados_altura"),):
             valid = table[total].gt(0) & table[f"{label}_n"].notna()
             denominator = table.loc[valid, total].sum()
             record[f"{label}_n"] = table.loc[valid, f"{label}_n"].sum()
@@ -450,10 +509,10 @@ def dictionary():
         ("cadinsan_n", "Famílias em risco estimado no cenário selecionado", "famílias", "CadInsan, janeiro/2025", "Não é contagem de pessoas nem medida direta de fome"),
         ("dai_n", "Altura muito baixa + altura baixa", "registros avaliados", "SISVAN, 2025", "Numerador recalculado"),
         ("dai_pct", "100 × dai_n / avaliados_altura", "%", "SISVAN, 2025", "Sem arredondamento; denominador zero gera NaN"),
-        ("dpi_n", "Peso muito baixo + peso baixo", "registros avaliados", "SISVAN, 2025", "Indicador complementar"),
-        ("dpi_pct", "100 × dpi_n / avaliados_peso", "%", "SISVAN, 2025", "Não somar com DAI"),
         ("avaliados_altura", "Total avaliado em Altura X Idade", "registros avaliados", "SISVAN, 2025", "Não é medida de cobertura populacional"),
-        ("avaliados_peso", "Total avaliado em Peso X Idade", "registros avaliados", "SISVAN, 2025", "Denominador específico de DPI"),
+        ("*_valor_fonte", "Valores das células de contagem do XLSX", "texto", "SISVAN, 2025", "Preservados antes da interpretação da escala"),
+        ("sisvan_escala_alterada", "Alguma contagem foi interpretada em escala diferente", "booleano", "Análise derivada", "A entrada não é reescrita"),
+        ("sisvan_escalas_compativeis", "Número de soluções compatíveis com soma e percentuais", "inteiro", "Análise derivada", "Mais de uma: adotado o menor total compatível; ambiguidade da fonte"),
         ("criterio_*", "Flag para corte fixo (IVS/IDHM) ou quantil nacional (demais)", "booleano anulável", "Análise derivada", "Ausente quando indicador não é elegível; IVS ≥ 0,401 e IDHM < 0,600"),
         ("prioritario", "Coincidência de IVS, CadInsan e DAI elevados e IDHM baixo", "booleano anulável", "Análise derivada", "Quatro critérios obrigatórios; ausente para informação insuficiente"),
         ("numero_criterios_primarios", "Quantidade de critérios primários atendidos", "0–4", "Análise derivada", "Ausente quando falta informação para qualquer critério primário; não é ranking"),
@@ -483,7 +542,6 @@ def distribution_figure(result, output):
     columns = [("ivs", "IVS — 2010"), ("idhm", "IDHM — 2010"),
                ("cadinsan_pct", "CadInsan (%) — cenário selecionado"),
                ("dai_pct", "DAI (%) — todos com avaliações"),
-               ("dpi_pct", "DPI (%) — todos com avaliações"),
                ("avaliados_altura", "Avaliações de altura — escala log")]
     for ax, (column, title) in zip(axes.flat, columns):
         values = result[column].dropna()
@@ -493,6 +551,7 @@ def distribution_figure(result, output):
         ax.hist(values, bins=35, color="#327c81", edgecolor="white", linewidth=0.4)
         ax.set_title(title)
         ax.set_ylabel("Municípios")
+    axes.flat[-1].set_visible(False)
     fig.tight_layout()
     save_figure(fig, output, "01_distribuicoes")
     return fig
@@ -521,16 +580,15 @@ def association_figure(result, thresholds, output):
 
 def correlation_figure(result, output, minimum=100):
     import matplotlib.pyplot as plt
-    cols = ["ivs", "idhm", "cadinsan_pct", "dai_pct", "dpi_pct"]
+    cols = ["ivs", "idhm", "cadinsan_pct", "dai_pct"]
     data = result[cols].copy()
     data.loc[result["avaliados_altura"] < minimum, "dai_pct"] = np.nan
-    data.loc[result["avaliados_peso"] < minimum, "dpi_pct"] = np.nan
     corr = data.corr(method="spearman", min_periods=3)
     pair_counts = data.notna().astype(int).T @ data.notna().astype(int)
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(corr, vmin=-1, vmax=1, cmap="RdBu_r")
-    ax.set_xticks(range(len(cols)), ["IVS", "IDHM", "CadInsan", "DAI", "DPI"])
-    ax.set_yticks(range(len(cols)), ["IVS", "IDHM", "CadInsan", "DAI", "DPI"])
+    ax.set_xticks(range(len(cols)), ["IVS", "IDHM", "CadInsan", "DAI"])
+    ax.set_yticks(range(len(cols)), ["IVS", "IDHM", "CadInsan", "DAI"])
     for i in range(len(cols)):
         for j in range(len(cols)):
             ax.text(j, i, f"{corr.iloc[i, j]:.2f}\nn={pair_counts.iloc[i, j]}",

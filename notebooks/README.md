@@ -16,6 +16,13 @@ texto da apresentação. As células de preparação permanecem recolhidas;
 verificações completas e informações de reprodução continuam no processamento
 e nas exportações. Essa reorganização não muda dados, critérios ou resultados.
 
+A seção 8 separa os indicadores da seleção (IVS, IDHM, CadInsan e DAI, com
+denominadores) da caracterização dos municípios (pessoas no CadÚnico e famílias
+em risco estimado). Os cabeçalhos dessas tabelas são legíveis; a base exportada
+mantém os nomes analíticos e os códigos municipais. DPI e dados de peso foram
+retirados de toda a análise, não somente dessas tabelas. A comparação regional
+utiliza apenas DAI. Flags são mantidas na exportação para auditoria.
+
 ## Uso no Google Colab
 
 1. Baixar o `.ipynb` e abri-lo no Colab por **Arquivo → Abrir notebook → Upload**.
@@ -54,9 +61,10 @@ tem o mesmo peso nos quantis nacionais, calculados antes de filtrar pelos
 critérios sociais. A tabela de cortes distingue método fixo de quantil;
 percentil fica vazio para IVS/IDHM.
 
-DAI/DPI e CadInsan são recalculados sem arredondamento na base analítica. Denominador zero
+DAI é calculado no notebook a partir das categorias de altura; CadInsan também
+usa razões sem arredondamento na base analítica. Denominador zero
 produz ausência analítica (`NaN`), mantendo os valores do CSV em colunas próprias.
-DPI e CadÚnico são indicadores contextuais. O JSON representa pessoas
+CadÚnico é contextual. O JSON representa pessoas
 cadastradas em junho/2026; a regra principal é IVS elevado + IDHM baixo +
 CadInsan elevado + DAI elevado. O IDHM passou a ser obrigatório por decisão
 metodológica da pesquisa. `QUANTIL` não altera IVS/IDHM; seus cortes são fixos
@@ -79,7 +87,9 @@ quantis nutricionais/alimentares e o mínimo de 100 avaliações permanecem igua
 - Distribuições, associações, correlações de Spearman e mapas de disponibilidade,
   IVS, IDHM, CadInsan, DAI e sobreposição. No mapa do IDHM, vermelho indica
   valores menores; nos demais mapas numéricos, valores maiores.
-- Resumo regional por razão entre somas, com denominadores separados de DAI/DPI.
+- Resumo regional de DAI por razão entre somas de numerador e avaliações de altura.
+- Auditoria de interpretação das contagens SISVAN, com células preservadas,
+  mudanças de escala e indicação de ambiguidades.
 - Sensibilidade a percentis 75/80, mínimos de 30/50/100 e cenários
   `com_PBF`/`sem_PBF`, incluindo frequência de seleção e Jaccard. O IDHM usa
   corte fixo < 0,600 e IVS ≥ 0,401 em todas as especificações;
@@ -110,7 +120,15 @@ conversão entre pessoas e famílias nem cálculo de cobertura populacional.
 
 O SISVAN descreve a população acompanhada; o mínimo de avaliações não demonstra
 representatividade. Não se calcula cobertura populacional sem denominador
-demográfico adequado. DAI e DPI não podem ser somados.
+demográfico adequado.
+
+O SISVAN foi baixado novamente nas 27 UFs em 4 de outubro de 2026, usando o
+coletor atualizado, sem indicadores derivados. O CSV achata cabeçalhos do XLSX
+e preserva valores numéricos como aparecem nas células; os XLSX exatos ficam
+na camada bruta. A interpretação de contagens ocorre no notebook, por soma e
+percentuais; múltiplas escalas são sinalizadas e adota-se o menor total
+compatível. Essa ambiguidade pode afetar contagens e o mínimo de avaliações.
+Ver [documentação da entrada](../dados/pesquisa/sisvan/README.md).
 
 A malha simplificada é uma cópia da API v4 do IBGE, com URL/data/hash próprios
 em [`dados/apoio/ibge/`](../dados/apoio/ibge/). A versão da API não expõe ano por

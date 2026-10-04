@@ -1,5 +1,6 @@
 import ast
 import base64
+import contextlib
 import hashlib
 import io
 import json
@@ -29,9 +30,7 @@ class OverlapTests(unittest.TestCase):
             "cadinsan_n_sem_PBF": [20., 30., 40., 50., np.nan],
             "cadastros_cadunico_cadinsan": [100., 100., 100., 100., np.nan],
             "dai_pct": [1., 2., 3., 4., np.nan],
-            "dpi_pct": [1., 2., 3., 4., np.nan],
             "avaliados_altura": [100., 100., 100., 100., 0.],
-            "avaliados_peso": [100., 100., 100., 100., 0.],
         })
 
     def test_missing_information_is_not_low_risk(self):
@@ -99,7 +98,7 @@ class OverlapTests(unittest.TestCase):
             pd.testing.assert_series_equal(reference[f"criterio_{indicator}"], result[f"criterio_{indicator}"])
             pd.testing.assert_series_equal(cuts75.set_index("indicador").loc[indicator],
                                            cuts80.set_index("indicador").loc[indicator])
-        for indicator in ("cadinsan", "dai", "dpi"):
+        for indicator in ("cadinsan", "dai"):
             self.assertEqual(cuts75.set_index("indicador").loc[indicator, "metodo"], "quantil")
             self.assertLess(cuts75.set_index("indicador").loc[indicator, "corte"],
                             cuts80.set_index("indicador").loc[indicator, "corte"])
@@ -124,7 +123,6 @@ class OverlapTests(unittest.TestCase):
         frame = pd.DataFrame({
             "regiao": ["Norte", "Norte"], "elegivel_principal": [True, True],
             "prioritario": [True, False], "dai_n": [1, 90], "avaliados_altura": [10, 100],
-            "dpi_n": [2, 30], "avaliados_peso": [10, 100],
         })
         result = analysis.regional_summary(frame).iloc[0]
         self.assertAlmostEqual(result.dai_pct_agregado, 91 / 110 * 100)
@@ -162,10 +160,9 @@ class ResearchSnapshotTests(unittest.TestCase):
 
     def test_deficits_match_source_counts_and_zero_is_missing(self):
         self.assertEqual(self.base.dai_n.sum(), 877708)
-        self.assertEqual(self.base.dpi_n.sum(), 266641)
         zero = self.base.loc[self.base.codigo_ibge_6 == "510183"].iloc[0]
         self.assertTrue(pd.isna(zero.dai_pct))
-        self.assertEqual(zero.dai_pct_arquivo, 0.)
+        self.assertEqual(zero.avaliados_altura, 0.)
         self.assertTrue(pd.isna(zero.codigo_ibge_7))
 
     def test_default_selection_and_thresholds(self):
@@ -271,7 +268,8 @@ class ResearchSnapshotTests(unittest.TestCase):
             self.assertIn(text, opening)
         for text in ("3391236", "scripts/", "docs/metodologia/", "dados/pesquisa/", "No projeto:"):
             self.assertNotIn(text, markdown)
-        for text in ("DAI", "DPI", "0,401", "0,600", "100 avaliações", "Jaccard", "causalidade"):
+        self.assertNotIn("DPI", markdown)
+        for text in ("DAI", "0,401", "0,600", "100 avaliações", "Jaccard", "causalidade"):
             self.assertIn(text, markdown)
         parameter_cell = notebook.cells[first_code]
         self.assertIn("QUANTIL = 0.75", parameter_cell.source)
@@ -281,6 +279,113 @@ class ResearchSnapshotTests(unittest.TestCase):
         self.assertEqual(setup.cell_type, "code")
         self.assertTrue(setup.metadata["jupyter"]["source_hidden"])
         self.assertEqual(sum(cell.cell_type == "code" for cell in notebook.cells), 13)
+
+    def test_section_eight_separates_selection_from_context_without_changing_data(self):
+        import nbformat
+        notebook = nbformat.read(ROOT / "notebooks/01_sobreposicao_criterios.ipynb", as_version=4)
+        section = next(cell for cell in notebook.cells
+                       if cell.cell_type == "code" and "indicadores_selecao =" in cell.source)
+        classified, _ = analysis.classify(self.base)
+        original = classified.copy(deep=True)
+        shown = []
+        namespace = {"classificados": classified, "display": shown.append,
+                     "Markdown": lambda text: text, "regional_summary": analysis.regional_summary,
+                     "CENARIO_CADINSAN": "com_PBF"}
+        with contextlib.redirect_stdout(io.StringIO()):
+            exec(section.source, namespace)
+        tables = [value for value in shown if isinstance(value, pd.DataFrame)]
+        self.assertEqual(len(tables), 3)
+        selection, context, regions = tables
+        self.assertEqual(selection.columns.tolist(), [
+            "Município", "UF", "IVS", "IDHM", "CadInsan (%)", "DAI (%)",
+            "Famílias no universo CadInsan", "Avaliações de altura"])
+        self.assertEqual(context.columns.tolist(), [
+            "Município", "UF", "Pessoas no CadÚnico — jun/2026",
+            "Famílias em risco estimado — jan/2025"])
+        self.assertEqual(len(selection), 30)
+        pd.testing.assert_frame_equal(selection[["Município", "UF"]], context[["Município", "UF"]])
+        pd.testing.assert_frame_equal(classified, original)
+        pd.testing.assert_frame_equal(regions, analysis.regional_summary(classified))
+        priority = namespace["prioritarios"]
+        self.assertEqual(len(priority), 242)
+        for column in ("criterio_idhm",
+                       "codigo_ibge_6", "codigo_ibge_7"):
+            self.assertIn(column, priority.columns)
+            self.assertNotIn(column, namespace["colunas_selecao"])
+            self.assertNotIn(column, namespace["colunas_caracterizacao"])
+        pd.testing.assert_series_equal(selection["DAI (%)"], priority.dai_pct.head(30), check_names=False)
+        pd.testing.assert_series_equal(context["Pessoas no CadÚnico — jun/2026"],
+                                       priority.cadunico_pessoas_2026_06.head(30), check_names=False)
+
+    def test_height_only_input_and_analysis_do_not_export_weight(self):
+        sources, _ = analysis.read_sources(ROOT / "dados/pesquisa")
+        self.assertEqual(len(sources["sisvan"].columns), 12)
+        for column in sources["sisvan"]:
+            self.assertNotIn("Déficit", column)
+            self.assertNotIn("Peso", column)
+        self.assertNotIn("Ano", sources["sisvan"])
+        result, cuts = analysis.classify(self.base)
+        self.assertEqual(set(cuts.indicador), {"ivs", "idhm", "cadinsan", "dai"})
+        for column in result:
+            self.assertFalse(column.startswith(("dpi", "peso")))
+        city = self.base.set_index("codigo_ibge_6").loc["110001"]
+        self.assertEqual(city.altura_adequada_n_valor_fonte, "1.02")
+        self.assertEqual(city.avaliados_altura_valor_fonte, "1.108")
+        self.assertEqual(city.altura_adequada_n, 1020)
+        self.assertEqual(city.avaliados_altura, 1108)
+        self.assertAlmostEqual(city.dai_pct, 100 * (26 + 62) / 1108)
+
+    def test_new_csv_preserves_every_source_cell_and_raw_hash(self):
+        from openpyxl import load_workbook
+        metadata = analysis.sisvan_metadata(ROOT / "dados/pesquisa")
+        source_path = ROOT / "dados/pesquisa" / analysis.DATA_FILES["sisvan"]
+        import csv
+        with source_path.open(encoding="utf-8-sig", newline="") as handle:
+            rows = {row["Código IBGE"]: row for row in csv.DictReader(handle)}
+        self.assertEqual(len(metadata["xlsx_originais"]), 27)
+        observed = set()
+        for item in metadata["xlsx_originais"]:
+            path = ROOT / item["arquivo_local"]
+            content = path.read_bytes()
+            self.assertEqual(hashlib.sha256(content).hexdigest(), item["hash_arquivo"])
+            filters = json.loads(item["filtros"])
+            self.assertEqual(filters["nu_indice_cri"], "3")
+            self.assertEqual(filters["nuAno"], "2025")
+            book = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            try:
+                for values in book.active.iter_rows(values_only=True):
+                    if len(values) < 12 or str(values[3]) not in rows:
+                        continue
+                    code = str(values[3])
+                    observed.add(code)
+                    for column, value in zip(metadata["colunas"], values[:12]):
+                        self.assertEqual(rows[code][column], str(value), (code, column))
+            finally:
+                book.close()
+        self.assertEqual(observed, set(rows))
+        csv_origin = ROOT / metadata["arquivo"]
+        self.assertEqual(source_path.read_bytes(), csv_origin.read_bytes())
+
+    def test_historical_combined_input_is_preserved(self):
+        path = ROOT / "dados/historico/pesquisa_sisvan_altura_peso_2025/indicadores_altura_peso_idade_menores_5_2025.csv"
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
+                         "21aa902b60fd5f08b1109f95a1c7e9a635a937fc96661fb57fe2519dcca9a92d")
+
+    def test_count_interpretation_audits_ambiguity_and_rejects_inconsistency(self):
+        values, changed, solutions = analysis.interpret_sisvan_counts(
+            ["26", "62", "1.02", "1.108"], ["2.35%", "5.6%", "92.06%"], "110001")
+        self.assertEqual(values, (26, 62, 1020, 1108))
+        self.assertTrue(changed)
+        self.assertEqual(solutions, 1)
+        values, changed, solutions = analysis.interpret_sisvan_counts(
+            ["1", "2", "7", "10"], ["10%", "20%", "70%"], "110001")
+        self.assertEqual(values, (1, 2, 7, 10))
+        self.assertFalse(changed)
+        self.assertEqual(solutions, 2)
+        for counts in (["1", "2", "7", "11"], ["-1", "2", "7", "8"],
+                       ["nan", "2", "7", "9"], ["1.00001", "2", "7", "10"]):
+            with self.assertRaises(ValueError):
+                analysis.interpret_sisvan_counts(counts, ["10%", "20%", "70%"], "110001")
 
 
 if __name__ == "__main__":

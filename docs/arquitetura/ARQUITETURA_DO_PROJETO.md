@@ -114,7 +114,7 @@ Essa é a estrutura de destino. A adoção deverá preservar arquivos e diretór
 
 O projeto coleta e preserva as seguintes famílias de dados:
 
-1. **Crianças:** altura por idade e peso por idade como recorte padrão; IMC por idade como opção preservada;
+1. **Crianças:** somente altura por idade no padrão; peso e IMC por idade como opções explícitas preservadas;
 2. **Adolescentes:** IMC por idade e altura por idade;
 3. **Adultos:** IMC;
 4. **Idosos:** IMC;
@@ -134,9 +134,6 @@ Exemplo conceitual de configuração:
 sisvan:
   indices:
     - nome: altura_por_idade
-      faixas_etarias:
-        - 0_a_menor_5_anos
-    - nome: peso_por_idade
       faixas_etarias:
         - 0_a_menor_5_anos
 ```
@@ -260,7 +257,7 @@ dados/tratados/sisvan/
 ├── altura_por_idade/               # consultas infantis individuais
 ├── peso_por_idade/                 # consultas infantis individuais
 ├── imc_por_idade/                  # preservado e opcional
-├── criancas_menores_5/             # indicadores derivados de altura e peso
+├── criancas_menores_5/             # produto histórico de altura e peso, não gerado automaticamente
 ├── consultas/<fase>/<indice>/      # demais consultas individuais
 ├── faixas_somadas/<fase>/<indice>/ # soma solicitada pelo usuário
 ├── por_fase/                        # categorias oficiais na visão geral
@@ -307,11 +304,17 @@ Déficit de estatura (%) =
 × 100
 ```
 
-A fórmula deverá ser aplicada somente na camada tratada. As categorias oficiais deverão permanecer separadas na camada bruta.
+A fórmula é aplicada somente na base analítica do notebook, nunca pelo
+coletor padrão. As três categorias e `Total` permanecem separados na entrada.
+O CSV de 12 colunas achata cabeçalhos multinível e preserva as células, sem
+normalizar escalas; filtros ficam no sidecar. A análise interpreta contagens
+por soma e percentuais, sinaliza ambiguidades e calcula DAI sem arredondar.
 
-### 8.2 Peso por idade: indicador complementar padrão
+### 8.2 Peso por idade: funcionalidade opcional, fora da análise vigente
 
-Para crianças de 0 a menos de 5 anos, o segundo indicador será:
+O coletor mantém consultas explícitas de peso, mas não as executa por padrão.
+A análise vigente exclui DPI integralmente. A fórmula abaixo registra apenas
+uma possibilidade para outro estudo, não um produto automático:
 
 ```text
 Déficit de peso para idade (%) =
@@ -469,29 +472,29 @@ O projeto deverá produzir, no mínimo:
 
 1. arquivos brutos independentes para cada consulta;
 2. manifesto completo das coletas;
-3. consolidado tratado de altura por idade para menores de 5 anos;
-4. consolidado tratado de peso por idade para menores de 5 anos;
-5. produto infantil com os dois déficits e denominadores separados;
+3. CSV convertido de altura por idade para menores de 5 anos, sem derivados;
+4. sidecar com filtros, proveniência e hashes dos XLSX e do CSV;
+5. DAI calculado no notebook e auditoria de interpretação de contagens;
 6. consolidados opcionais de IMC por idade e da visão geral por fases;
 7. relatório de cobertura e qualidade do SISVAN;
 8. bases tratadas de IVS, IDHM e CadÚnico;
 9. relatório de integração territorial e temporal;
 10. base analítica integrada;
 11. mapas e tabelas de vulnerabilidade social;
-12. mapas de déficit de estatura e de peso para idade;
+12. mapas de déficit de altura para idade;
 13. produtos espaciais de sobreposição entre vulnerabilidade social e nutricional;
 14. documentação e dicionário das variáveis.
 
 ## 14. Decisões de implementação
 
 - [x] Enumerar as faixas etárias oficiais disponíveis no SISVAN para cada índice.
-- [x] Definir inicialmente a faixa de 0 a menos de 5 anos para os dois índices.
+- [x] Definir 0 a menos de 5 anos para altura; outros índices apenas opcionais.
 - [x] Confirmar os filtros constantes entre as consultas.
 - [x] Definir 2025 e todos os municípios do Brasil como recorte inicial.
 - [x] Definir a convenção de nomes dos arquivos.
 - [x] Definir o formato CSV e o esquema do manifesto.
 - [x] Reutilizar arquivos brutos e exigir `--force` para sobrescrita explícita.
-- [ ] Definir limite mínimo de avaliados para as análises municipais.
+- [x] Adotar mínimo exploratório de 100 avaliações de altura, com sensibilidade.
 - [ ] Definir a fonte do denominador utilizado no cálculo de cobertura.
 - [x] Validar os esquemas oficiais de altura, peso e IMC por idade.
 - [x] Manter denominadores separados para altura por idade e peso por idade.
@@ -508,15 +511,15 @@ O projeto deverá produzir, no mínimo:
 6. adicionar altura por idade e peso por idade como coletas independentes;
 7. gerar um arquivo bruto por combinação de parâmetros;
 8. implementar verificações automáticas de integridade e conteúdo;
-9. criar consolidados separados para os índices e um produto infantil derivado;
-10. calcular indicadores derivados apenas na camada tratada;
+9. criar CSV por consulta sem derivados; preservar o produto infantil antigo;
+10. interpretar contagens e calcular DAI somente na análise do notebook;
 11. integrar as demais fontes somente após a aprovação das bases individuais.
 
 ## 16. Critério de aceite da arquitetura
 
-A implementação estará de acordo com esta arquitetura quando altura por idade e
-peso por idade forem coletados por padrão em `0 a < 5 anos`, IMC permanecer
-disponível opcionalmente e, para cada consulta, for possível:
+A implementação estará de acordo com esta arquitetura quando somente altura
+por idade for coletada por padrão em `0 a < 5 anos`, peso/IMC permanecerem
+opcionais e, para cada consulta, for possível:
 
 - reproduzir os parâmetros utilizados;
 - localizar o arquivo bruto correspondente;
@@ -526,6 +529,7 @@ disponível opcionalmente e, para cada consulta, for possível:
 - reconstruir o consolidado por meio de código;
 - rastrear cada valor analítico até a fonte original.
 
-O produto infantil deverá ainda manter os dois totais avaliados, calcular cada
-déficit com seu próprio denominador e proibir sua interpretação como categorias
-mutuamente exclusivas.
+A entrada ativa não terá indicadores derivados. DAI será calculado no notebook,
+e DPI estará ausente da análise. A nova coleta deverá ter diretório e manifesto
+próprios, sem sobrescrever as versões anteriores. A decisão e os detalhes de
+fidelidade estão em [DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md](DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md).

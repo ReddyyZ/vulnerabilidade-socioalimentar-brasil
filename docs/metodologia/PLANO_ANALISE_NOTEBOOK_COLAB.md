@@ -12,8 +12,9 @@ das fontes sociais foram documentados com o catálogo e o relatório oficial.
 Os percentuais do CadInsan são recalculados sem arredondamento, preservando os
 valores do CSV e auditando a diferença na seleção.
 O IDHM baixo também é obrigatório na sobreposição, por decisão da pesquisa:
-IDHM < 0,600. IVS exige ≥ 0,401. Ambos são cortes fixos; CadÚnico e DPI
-permanecem contextuais. Não será produzido ranking composto.
+IDHM < 0,600. IVS exige ≥ 0,401. Ambos são cortes fixos; CadÚnico é contextual.
+DPI foi excluído de toda a análise. SISVAN foi baixado novamente com o coletor
+atualizado: somente altura, sem DAI na entrada. Não será produzido ranking composto.
 
 ## 1. Pergunta da pesquisa
 
@@ -41,7 +42,7 @@ O notebook deverá responder a três perguntas:
 | IDHM | Desenvolvimento humano | IDHM total; valores menores indicam situação mais desfavorável |
 | CadÚnico | Dimensão da população cadastrada e demanda potencial | Pessoas cadastradas por município, junho/2026 |
 | CadInsan | Risco estimado de insegurança alimentar grave | Proporção para comparar intensidade; quantidade para dimensionar demanda |
-| SISVAN | Situação nutricional infantil registrada | DAI como resultado principal; DPI como complementar; respectivos denominadores |
+| SISVAN | Situação nutricional infantil registrada | DAI calculado no notebook e total de avaliações de altura |
 
 O CadInsan estima risco entre famílias inscritas no CadÚnico. Portanto,
 CadÚnico e CadInsan compartilham uma origem e não devem receber automaticamente
@@ -54,9 +55,9 @@ acompanhadas, sem extrapolação automática para todas as crianças residentes.
 Referência:
 [Ministério da Saúde](https://www.gov.br/saude/pt-br/composicao/saps/vigilancia-alimentar-e-nutricional/sisvan).
 
-O recorte nutricional aprovado é **altura por idade e peso por idade em crianças
+O recorte nutricional aprovado é **altura por idade em crianças
 de 0 a menos de 5 anos, em 2025**. DAI corresponde ao déficit de altura/estatura
-para idade; DPI corresponde ao déficit de peso para idade.
+para idade. Peso e DPI não integram a entrada nem a análise vigente.
 
 ## 3. Bases disponíveis
 
@@ -69,7 +70,7 @@ A identificação, procedência, cobertura e integridade das cópias estão no
 | `ivs_idhm/atlasivs_municipios_2010.csv` | IVS e IDHM | 5.565 |
 | `cadunico/municipios-cadunico.json` | Pessoas cadastradas, junho/2026, conforme catálogo | 5.564 |
 | `cadinsan/CADINSAN_2025_dados_municipais.csv` | Famílias em risco estimado e denominador em famílias, janeiro/2025 | 5.570 |
-| `sisvan/indicadores_altura_peso_idade_menores_5_2025.csv` | Altura por idade, peso por idade, DAI e DPI | 5.571 |
+| `sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv` | Categorias oficiais de Altura X Idade e Total, sem DAI derivado | 5.571 |
 
 Os caminhos da tabela são relativos a `dados/pesquisa/`. Os arquivos de entrada
 devem permanecer preservados; limpeza, compatibilização e integração deverão
@@ -112,8 +113,7 @@ concentrar mais famílias em risco sem apresentar a maior proporção.
 
 ### 4.5 Comparação entre dimensões
 
-Produzir gráficos de IVS × DAI, IDHM × DAI e CadInsan × DAI. Repetir as principais
-comparações com DPI.
+Produzir gráficos de IVS × DAI, IDHM × DAI e CadInsan × DAI.
 
 Uma matriz de correlação de Spearman pode mostrar associações e redundâncias.
 Correlação municipal não demonstra causalidade nem relações individuais.
@@ -162,8 +162,8 @@ O IDHM baixo é um quarto critério obrigatório, não apenas contextual. A maio
 restrição é intencional: selecionar a coincidência de vulnerabilidade social,
 baixo desenvolvimento humano, risco alimentar estimado e déficit de altura.
 IVS e IDHM não são tratados como evidências independentes; sua associação é
-avaliada nos gráficos e correlações. DPI acrescenta uma segunda leitura
-nutricional; CadÚnico dimensiona as pessoas cadastradas em junho/2026, sem
+avaliada nos gráficos e correlações. CadÚnico dimensiona as pessoas
+cadastradas em junho/2026, sem
 substituir o denominador de famílias do CadInsan nem medir cobertura populacional.
 
 Os cortes de IVS/IDHM não dependem de `QUANTIL`. IVS exatamente 0,401 atende;
@@ -190,7 +190,7 @@ risco alimentar.
 Os cortes por quartis de CadInsan/DAI são **critérios relativos da pesquisa**, não limites
 oficiais de risco. Testar também, por exemplo, o quinto mais desfavorável da
 distribuição na análise de sensibilidade.
-Nessa comparação, P75/P80 variam para CadInsan/DAI e DPI complementar;
+Nessa comparação, P75/P80 variam para CadInsan/DAI;
 IVS ≥ 0,401 e IDHM < 0,600 permanecem fixos. As 12 especificações atuais
 selecionam de 179 a 270 municípios. Mínimos 30/50/100 e cenários com/sem PBF
 permanecem como antes; não foi adotado corte fixo de 20% para DAI.
@@ -249,18 +249,21 @@ colunas próprias, com auditoria dos cortes e municípios que mudam de seleção
 
 ### 6.3 SISVAN
 
-- Manter DAI e DPI separados e preservar seus denominadores próprios.
-- Não somar os déficits: os dados municipais não identificam sua interseção
-  individual.
-- Tratar denominador zero como ausência de observações. Na base disponível,
-  percentuais derivados `0.0` nessas linhas não demonstram prevalência nula.
+- Preservar XLSX exatos e valores de células no CSV convertido de 12 colunas.
+- Guardar filtros, ano, idade, fase, data e hashes no sidecar.
+- Interpretar contagens no notebook por soma e percentuais oficiais; interromper
+  em inconsistência e registrar ambiguidades de escala. Adotar o menor total
+  compatível quando há múltiplas soluções; reconhecer limitações nos absolutos
+  e no mínimo de avaliações. A entrada não é reescrita.
+- Calcular DAI somente na base analítica; não usar percentual combinado da fonte.
+- Tratar denominador zero como ausência de observações (`NaN`), não DAI zero.
 - Testar diferentes denominadores mínimos, com justificativa.
 - Um número elevado de registros, sozinho, não garante representatividade.
-- Ao agregar DAI ou DPI por região, somar numeradores e denominadores antes de
+- Ao agregar DAI por região, somar numeradores e denominadores antes de
   calcular o percentual; não usar a média simples dos percentuais municipais.
 
 O dicionário, fórmulas, filtros e limitações estão no
-[README da base SISVAN](../../dados/tratados/sisvan/criancas_menores_5/README.md).
+[README da base SISVAN](../../dados/pesquisa/sisvan/README.md).
 
 ### 6.4 Tempo, território e dados adicionais
 

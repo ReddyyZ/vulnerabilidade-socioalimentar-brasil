@@ -1,5 +1,9 @@
 # SISVAN municipal — base bruta (2025)
 
+Esta documentação refere-se à coleta histórica de IMC. A entrada ativa da
+pesquisa agora é exclusivamente altura por idade, documentada em
+[dados/pesquisa/sisvan/README.md](../../dados/pesquisa/sisvan/README.md).
+
 ## Arquivo principal
 
 sisvan_municipios_2025.csv é uma transcrição da tabela municipal do
@@ -49,7 +53,7 @@ sisvan_municipios_2025_derivada.csv.
 
 ## Reprodução
 
-    python3 scripts/coletar_sisvan.py --year 2025
+    python3 scripts/coletar_sisvan.py --year 2025 --indices imc_por_idade
 
 Os checkpoints brutos ficam em
 data/sisvan/checkpoints_brutos/2025/UF.csv. O processo é sequencial,

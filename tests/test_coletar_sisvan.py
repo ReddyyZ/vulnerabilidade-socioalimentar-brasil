@@ -86,7 +86,7 @@ class SisvanCollectorTests(unittest.TestCase):
             self.assertEqual(query.indicator.code, "1")
             self.assertEqual(query.indicator.categories, expected)
 
-    def test_configuracao_padrao_usa_altura_e_peso_menores_5(self):
+    def test_configuracao_padrao_usa_apenas_altura_menores_5(self):
         args = SimpleNamespace(
             config=ROOT / "configuracoes/sisvan/coletas.json",
             year=None, fases=None, indices=None, faixas_etarias=None,
@@ -98,7 +98,6 @@ class SisvanCollectorTests(unittest.TestCase):
             {(item.indicator.key, item.age_range.key) for item in queries},
             {
                 ("altura_por_idade", "0_a_menor_5_anos"),
-                ("peso_por_idade", "0_a_menor_5_anos"),
             },
         )
 
@@ -355,43 +354,42 @@ class SisvanCollectorTests(unittest.TestCase):
         self.assertEqual(fact["denom_risco"], 10)
         self.assertEqual(fact["total"], 50)
 
-    def test_perfil_menores_5_mantem_denominadores_separados(self):
-        plans = [
-            ("altura_por_idade", [1, 2, 7]),
-            ("peso_por_idade", [2, 3, 13, 2]),
-        ]
+    def test_preserva_celulas_decimais_sem_calcular_deficit(self):
+        indicator = collector.INDICATORS["altura_por_idade"]
+        binary = self.workbook(indicator, [26, 62, 1020])
+        from openpyxl import load_workbook
+        book = load_workbook(io.BytesIO(binary))
+        sheet = book.active
+        sheet.cell(8, 10, 1.02)
+        sheet.cell(8, 12, 1.108)
+        stream = io.BytesIO()
+        book.save(stream)
+        book.close()
+        rows, schema = collector.parse_export(stream.getvalue(), "RO", indicator)
+        stats = collector.validate(rows, schema)
+        self.assertEqual(rows[0]["Altura Adequada para a Idade - Quantidade"], 1.02)
+        self.assertEqual(rows[0]["Total"], 1.108)
+        self.assertEqual(len(schema.columns), 12)
+        self.assertFalse(any("Déficit" in c for c in schema.columns))
         with tempfile.TemporaryDirectory() as directory:
-            directory = Path(directory)
-            products = []
-            for index, counts in plans:
-                query = collector.make_query("crianca", index, "0-5", 2025)
-                rows, schema = collector.parse_export(
-                    self.workbook(query.indicator, counts), "RO", query.indicator,
-                )
-                source = directory / (index + ".csv")
-                collector.write_csv(source, rows, schema.columns)
-                products.append({
-                    "query": query, "output": source, "schema": schema,
-                    "stats": collector.validate(rows, schema),
-                })
-            args = SimpleNamespace(output_dir=directory / "output")
-            output = collector.write_under5_growth_product(
-                args, products, [("RO", "11")],
-            )
-            with output.open(newline="", encoding="utf-8-sig") as handle:
+            path = Path(directory) / "altura.csv"
+            collector.write_csv(path, rows, schema.columns)
+            query = collector.make_query("crianca", "altura_por_idade", "0-5", 2025)
+            meta = path.with_suffix(".metadados.json")
+            collector.write_metadata(meta, query, path, stats, [("RO", "11")], schema)
+            with path.open(encoding="utf-8-sig", newline="") as handle:
                 row = next(csv.DictReader(handle))
-            metadata = json.loads(
-                output.with_suffix(".metadados.json").read_text(encoding="utf-8")
-            )
-        self.assertEqual(row["Déficit de estatura - Quantidade"], "3")
-        self.assertEqual(row["Déficit de estatura - %"], "30.0")
-        self.assertEqual(row["Total avaliado - Altura X Idade"], "10")
-        self.assertEqual(row["Déficit de peso para idade - Quantidade"], "5")
-        self.assertEqual(row["Déficit de peso para idade - %"], "25.0")
-        self.assertEqual(row["Total avaliado - Peso X Idade"], "20")
-        self.assertIn(
-            "nao podem ser somados", " ".join(metadata["limitacoes"]),
-        )
+            self.assertEqual(row["Total"], "1.108")
+            self.assertEqual(row["Altura Adequada para a Idade - Quantidade"], "1.02")
+            metadata = json.loads(meta.read_text())
+            self.assertEqual(metadata["indicadores_derivados"], [])
+            self.assertEqual(metadata["sha256_csv"], collector.sha256(path.read_bytes()))
+
+    def test_main_nao_calcula_indicador_infantil_automaticamente(self):
+        source = Path(collector.__file__).read_text()
+        self.assertNotIn("write_under5_growth_product", source)
+        self.assertNotIn("Déficit de estatura", source)
+        self.assertNotIn("Déficit de peso para idade", source)
 
     def test_faixa_invalida_e_rejeitada(self):
         with self.assertRaises(ValueError):

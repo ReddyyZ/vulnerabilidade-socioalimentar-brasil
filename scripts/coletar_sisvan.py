@@ -11,6 +11,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -80,29 +81,7 @@ PREGNANT_COLUMNS = (
     "Obesidade - Quantidade", "Obesidade - %",
     "Excesso de peso - Quantidade", "Excesso de peso - %", "Total",
 )
-UNDER5_COLUMNS = (
-    "Fase da vida", "Faixa etária", "Ano", *BASE_COLUMNS,
-    "Altura Muito Baixa para a Idade - Quantidade",
-    "Altura Muito Baixa para a Idade - %",
-    "Altura Baixa para a Idade - Quantidade",
-    "Altura Baixa para a Idade - %",
-    "Altura Adequada para a Idade - Quantidade",
-    "Altura Adequada para a Idade - %",
-    "Déficit de estatura - Quantidade", "Déficit de estatura - %",
-    "Total avaliado - Altura X Idade",
-    "Peso Muito Baixo para a Idade - Quantidade",
-    "Peso Muito Baixo para a Idade - %",
-    "Peso Baixo para a Idade - Quantidade",
-    "Peso Baixo para a Idade - %",
-    "Peso Adequado ou Eutrófico - Quantidade",
-    "Peso Adequado ou Eutrófico - %",
-    "Peso Elevado para a Idade - Quantidade",
-    "Peso Elevado para a Idade - %",
-    "Déficit de peso para idade - Quantidade",
-    "Déficit de peso para idade - %",
-    "Total avaliado - Peso X Idade",
-)
-COLLECTOR_VERSION = "4.1"
+COLLECTOR_VERSION = "5.0"
 
 
 @dataclass(frozen=True)
@@ -415,20 +394,16 @@ def parse_export(binary, expected_uf, indicator, phase=None):
                 official_percent(values[6 + 2 * index])
                 for index in range(len(schema.categories))
             ]
-            percentages = [numeric_percent(value) for value in official_percentages]
-            counts, total = resolve_counts(
-                raw_counts, percentages, values[width - 1], uf, code,
-            )
             row = {
                 "Região": normalize_header(values[0]),
                 "Código UF": str(int(values[1])).zfill(2),
                 "UF": uf,
                 "Código IBGE": code,
                 "Município": normalize_header(values[4]),
-                "Total": total,
+                "Total": values[width - 1],
             }
             for category, count, percentage in zip(
-                schema.categories, counts, official_percentages,
+                schema.categories, raw_counts, official_percentages,
             ):
                 row[category + " - Quantidade"] = count
                 row[category + " - %"] = percentage
@@ -447,13 +422,11 @@ def validate(rows, schema):
         if not re.fullmatch(r"\d{6}", code) or code in seen:
             raise RuntimeError("Codigo SISVAN invalido ou duplicado: " + code)
         seen.add(code)
-        counts = [int(row[column]) for column in schema.count_columns]
+        counts = [float(row[column]) for column in schema.count_columns]
         percentages = [numeric_percent(row[column]) for column in schema.percent_columns]
-        total = int(row["Total"])
-        if any(value < 0 for value in counts) or total < 0:
-            raise RuntimeError("Contagem negativa em " + code)
-        if sum(counts) != total:
-            raise RuntimeError("Categorias diferentes do Total em " + code)
+        total = float(row["Total"])
+        if any(not math.isfinite(value) or value < 0 for value in counts + [total]):
+            raise RuntimeError("Contagem negativa ou nao finita em " + code)
         if total == 0:
             if any(counts) or any(percentages):
                 raise RuntimeError("Linha zero inconsistente em " + code)
@@ -461,9 +434,8 @@ def validate(rows, schema):
             continue
         if abs(sum(percentages) - 100) > 0.10:
             raise RuntimeError("Percentuais nao somam 100 em " + code)
-        for quantity, percentage in zip(counts, percentages):
-            if abs(quantity / total * 100 - percentage) > 0.011:
-                raise RuntimeError("Percentual nao corresponde a quantidade em " + code)
+        # Escalas numéricas do exportador são interpretadas somente na análise.
+        # A coleta preserva os valores das células, inclusive números decimais.
     return {"total": len(rows), "zeros": zeros}
 
 
@@ -854,7 +826,7 @@ def write_combined(path, products, states):
     return written
 
 
-def write_metadata(path, query, output, stats, states, schema):
+def write_metadata(path, query, output, stats, states, schema, originals=None):
     data = {
         "fonte": helper.PORTAL,
         "endpoint": helper.ENDPOINT,
@@ -874,10 +846,17 @@ def write_metadata(path, query, output, stats, states, schema):
         "colunas": list(schema.columns),
         "linhas": stats["total"],
         "linhas_total_zero": len(stats["zeros"]),
+        "versao_coletor": COLLECTOR_VERSION,
+        "sha256_csv": sha256(output.read_bytes()),
+        "xlsx_originais": originals or [],
+        "contagens": "valores das celulas preservados; sem normalizacao de escala",
+        "indicadores_derivados": [],
         "gerado_em": datetime.now().astimezone().isoformat(timespec="seconds"),
         "observacao": (
-            "CSV consolidado e validado a partir dos XLSX oficiais por UF; "
-            "os XLSX preservados constituem a camada bruta imutavel."
+            "CSV convertido dos XLSX oficiais por UF. Cabecalhos multinivel "
+            "sao achatados em categoria - Quantidade e categoria - %. "
+            "Valores das celulas nao sao corrigidos ou recalculados. "
+            "Os XLSX preservados sao os arquivos originais exatos."
         ),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -928,7 +907,7 @@ def collect_query(args, query, states, session, limiter, portal_started, manifes
         query.age_range.official_label, query.year,
     )
     print("\nCONSULTA:", label)
-    all_rows, expected_schema = [], None
+    all_rows, expected_schema, originals = [], None, []
     for position, (uf, uf_code) in enumerate(states, 1):
         print("[%02d/%02d] %s" % (position, len(states), uf))
         raw = raw_path(args, query, uf)
@@ -983,6 +962,10 @@ def collect_query(args, query, states, session, limiter, portal_started, manifes
                 "Arquivo bruto diverge do manifesto: %s" % raw
             )
         manifest.record(entry, preserve_timestamp=reused)
+        originals.append({key: entry[key] for key in (
+            "arquivo_local", "hash_arquivo", "data_hora_coleta", "filtros",
+            "quantidade_registros",
+        )})
         manifest.write()
         print("  municipios:", len(rows))
     all_rows.sort(key=lambda row: int(row["Código IBGE"]))
@@ -990,7 +973,7 @@ def collect_query(args, query, states, session, limiter, portal_started, manifes
     output = output_path(args, query, states, query_count)
     write_csv(output, all_rows, expected_schema.columns)
     write_metadata(
-        metadata_path(output), query, output, stats, states, expected_schema,
+        metadata_path(output), query, output, stats, states, expected_schema, originals,
     )
     print("  CSV consolidado:", output)
     print("  linhas:", stats["total"], "| Total=0:", len(stats["zeros"]))
@@ -1010,7 +993,19 @@ def read_product_rows(product_item):
                 "Esquema inesperado no consolidado: %s"
                 % product_item["output"]
             )
-        return list(reader)
+        rows = list(reader)
+    # Apenas produtos derivados explicitamente solicitados usam contagens
+    # interpretadas. O CSV por consulta nunca é reescrito por esta operação.
+    schema = product_item["schema"]
+    for row in rows:
+        counts, total = resolve_counts(
+            [float(row[c]) for c in schema.count_columns],
+            [numeric_percent(row[c]) for c in schema.percent_columns],
+            float(row["Total"]), row["UF"], row["Código IBGE"],
+        )
+        row.update(zip(schema.count_columns, counts))
+        row["Total"] = total
+    return rows
 
 
 def derived_percent(quantity, total):
@@ -1527,142 +1522,6 @@ def write_pregnant_product(args, product_item, states):
     return output
 
 
-def write_under5_growth_product(args, products, states):
-    """Combina Altura/Idade e Peso/Idade sem misturar seus denominadores."""
-    selected = {}
-    for item in products:
-        query = item["query"]
-        if (
-            query.phase.key == "crianca"
-            and query.age_range.key == "0_a_menor_5_anos"
-            and query.indicator.key in {"altura_por_idade", "peso_por_idade"}
-        ):
-            if query.indicator.key in selected:
-                raise RuntimeError(
-                    "consulta duplicada no perfil de menores de 5 anos: "
-                    + query.indicator.key
-                )
-            selected[query.indicator.key] = item
-    required = {"altura_por_idade", "peso_por_idade"}
-    if set(selected) != required:
-        return None
-    ordered = [selected["altura_por_idade"], selected["peso_por_idade"]]
-    loaded, identities = compatible_product_rows(ordered)
-    rows_by_index = {
-        item["query"].indicator.key: {
-            row["Código IBGE"]: row for row in rows
-        }
-        for item, rows in loaded
-    }
-    height_rows = rows_by_index["altura_por_idade"]
-    weight_rows = rows_by_index["peso_por_idade"]
-    year = ordered[0]["query"].year
-    if ordered[1]["query"].year != year:
-        raise RuntimeError("perfil infantil exige o mesmo ano nos dois indices")
-    output_rows = []
-    for code in sorted(identities, key=int):
-        height = height_rows[code]
-        weight = weight_rows[code]
-        height_total = int(height["Total"])
-        weight_total = int(weight["Total"])
-        very_low_height = int(
-            height["Altura Muito Baixa para a Idade - Quantidade"]
-        )
-        low_height = int(height["Altura Baixa para a Idade - Quantidade"])
-        height_deficit = very_low_height + low_height
-        very_low_weight = int(
-            weight["Peso Muito Baixo para a Idade - Quantidade"]
-        )
-        low_weight = int(weight["Peso Baixo para a Idade - Quantidade"])
-        weight_deficit = very_low_weight + low_weight
-        if height_deficit > height_total or weight_deficit > weight_total:
-            raise RuntimeError("deficit infantil superior ao total em " + code)
-        output_rows.append({
-            "Fase da vida": "CRIANÇA",
-            "Faixa etária": "0 a < 5 anos",
-            "Ano": year,
-            **dict(zip(BASE_COLUMNS, identities[code])),
-            "Altura Muito Baixa para a Idade - Quantidade": very_low_height,
-            "Altura Muito Baixa para a Idade - %": height[
-                "Altura Muito Baixa para a Idade - %"
-            ],
-            "Altura Baixa para a Idade - Quantidade": low_height,
-            "Altura Baixa para a Idade - %": height[
-                "Altura Baixa para a Idade - %"
-            ],
-            "Altura Adequada para a Idade - Quantidade": int(
-                height["Altura Adequada para a Idade - Quantidade"]
-            ),
-            "Altura Adequada para a Idade - %": height[
-                "Altura Adequada para a Idade - %"
-            ],
-            "Déficit de estatura - Quantidade": height_deficit,
-            "Déficit de estatura - %": derived_percent(
-                height_deficit, height_total,
-            ),
-            "Total avaliado - Altura X Idade": height_total,
-            "Peso Muito Baixo para a Idade - Quantidade": very_low_weight,
-            "Peso Muito Baixo para a Idade - %": weight[
-                "Peso Muito Baixo para a Idade - %"
-            ],
-            "Peso Baixo para a Idade - Quantidade": low_weight,
-            "Peso Baixo para a Idade - %": weight[
-                "Peso Baixo para a Idade - %"
-            ],
-            "Peso Adequado ou Eutrófico - Quantidade": int(
-                weight["Peso Adequado ou Eutrófico - Quantidade"]
-            ),
-            "Peso Adequado ou Eutrófico - %": weight[
-                "Peso Adequado ou Eutrófico - %"
-            ],
-            "Peso Elevado para a Idade - Quantidade": int(
-                weight["Peso Elevado para a Idade - Quantidade"]
-            ),
-            "Peso Elevado para a Idade - %": weight[
-                "Peso Elevado para a Idade - %"
-            ],
-            "Déficit de peso para idade - Quantidade": weight_deficit,
-            "Déficit de peso para idade - %": derived_percent(
-                weight_deficit, weight_total,
-            ),
-            "Total avaliado - Peso X Idade": weight_total,
-        })
-    name = "indicadores_altura_peso_idade_menores_5_%s%s.csv" % (
-        year, partial_suffix(states),
-    )
-    output = args.output_dir / "criancas_menores_5" / name
-    write_csv(output, output_rows, UNDER5_COLUMNS)
-    write_json(metadata_path(output), {
-        "fonte": helper.PORTAL,
-        "arquivo": portable_path(output),
-        "tipo": "produto derivado infantil com dois indices independentes",
-        "fase": "crianca",
-        "faixa_etaria": "0_a_menor_5_anos",
-        "ano": year,
-        "formulas": {
-            "deficit_estatura": (
-                "Altura Muito Baixa para a Idade + "
-                "Altura Baixa para a Idade"
-            ),
-            "deficit_peso_idade": (
-                "Peso Muito Baixo para a Idade + "
-                "Peso Baixo para a Idade"
-            ),
-        },
-        "denominadores": {
-            "deficit_estatura": "Total avaliado - Altura X Idade",
-            "deficit_peso_idade": "Total avaliado - Peso X Idade",
-        },
-        "fontes": product_sources(ordered),
-        "linhas": len(output_rows),
-        "gerado_em": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "limitacoes": [
-            "Os dois deficits nao podem ser somados entre si.",
-            "Os relatorios agregados nao identificam a intersecao de criancas entre os indices.",
-            "Peso elevado para a idade nao equivale a diagnostico de sobrepeso ou obesidade.",
-        ],
-    })
-    return output
 
 
 def print_options():
@@ -1846,10 +1705,6 @@ def main():
         print("\nCSV unico:", combined)
         print("Linhas no formato longo:", combined_rows)
     derived = []
-    under5 = write_under5_growth_product(args, products, states)
-    if under5:
-        derived.append(under5)
-        print("Indicadores de menores de 5 anos:", under5)
     if args.somar_faixas or args.populacao_geral:
         grouped = {}
         for item in products:

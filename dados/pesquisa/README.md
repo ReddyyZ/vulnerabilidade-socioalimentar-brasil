@@ -6,12 +6,14 @@
 
 Esta pasta reúne as bases municipais já disponíveis no projeto para essa análise,
 incluindo CADINSAN como fonte complementar. O recorte nutricional selecionado é
-**altura por idade e peso por idade de crianças de 0 a menos de 5 anos, em 2025**.
+**altura por idade de crianças de 0 a menos de 5 anos, em 2025**.
 
-Organização realizada em **4 de outubro de 2026**. Os quatro arquivos de dados
-são cópias integrais dos arquivos existentes: nenhum cabeçalho, valor, código,
-formato ou categoria foi alterado nesta organização. Os arquivos de origem
-continuam preservados. A integração e os cálculos ocorrem somente na base
+Atualização realizada em **4 de outubro de 2026**. Os três arquivos sociais
+continuam idênticos aos arquivos existentes. A entrada SISVAN foi substituída
+por nova coleta de altura usando o coletor atualizado: cópia integral do CSV
+convertido, sem DAI calculado e com os valores das células preservados.
+Os XLSX originais exatos e a base anterior continuam preservados.
+A integração e os cálculos ocorrem somente na base
 analítica gerada pelo [notebook](../../notebooks/01_sobreposicao_criterios.ipynb).
 
 ## Conteúdo
@@ -21,7 +23,7 @@ analítica gerada pelo [notebook](../../notebooks/01_sobreposicao_criterios.ipyn
 | IVS e IDHM | [atlasivs_municipios_2010.csv](ivs_idhm/atlasivs_municipios_2010.csv) | 5.565 | 2010, documentado no catálogo | Vulnerabilidade social e desenvolvimento humano |
 | CadÚnico | [municipios-cadunico.json](cadunico/municipios-cadunico.json) | 5.564 | Junho de 2026 | Pessoas cadastradas, para contextualização de demanda |
 | CADINSAN | [CADINSAN_2025_dados_municipais.csv](cadinsan/CADINSAN_2025_dados_municipais.csv) | 5.570 | Janeiro de 2025, conforme relatório oficial | Famílias em risco estimado nos cenários com/sem efeito do PBF |
-| SISVAN | [indicadores_altura_peso_idade_menores_5_2025.csv](sisvan/indicadores_altura_peso_idade_menores_5_2025.csv) | 5.571 | 2025 | Déficit de altura/estatura para idade (DAI) e déficit de peso para idade (DPI) |
+| SISVAN | [sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv](sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv) | 5.571 | 2025 | Categorias de Altura X Idade; DAI calculado no notebook |
 
 **O IDHM já está no arquivo do IVS.** Não é necessário um segundo arquivo para
 acessar suas variáveis. Este CSV contém `ivs`, suas três dimensões, `idhm` e
@@ -51,7 +53,7 @@ Os caminhos abaixo são relativos à raiz do repositório:
 | `ivs_idhm/atlasivs_municipios_2010.csv` | `atlasivs_municipios_2010.csv` |
 | `cadunico/municipios-cadunico.json` | `municipios-cadunico.json` |
 | `cadinsan/CADINSAN_2025_dados_municipais.csv` | `CADINSAN_2025_dados_municipais.csv` |
-| `sisvan/indicadores_altura_peso_idade_menores_5_2025.csv` | `dados/tratados/sisvan/criancas_menores_5/indicadores_altura_peso_idade_menores_5_2025.csv` |
+| `sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv` | `dados/intermediarios/sisvan/coleta_20261004T205844Z/altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv` |
 
 As URLs registradas para os arquivos sociais estão em
 [`fonte_dados.json`](../../fonte_dados.json). Elas apontam para cópias publicadas
@@ -67,16 +69,16 @@ cuja tabela municipal foi conferida por amostragem com o CSV. O catálogo
 descreve 2025 como referência anual; o relatório explicita a base de janeiro.
 
 O SISVAN foi obtido do Relatório Público do Ministério da Saúde. A documentação
-completa, com o dicionário das 28 colunas, filtros, fórmulas, limitações e
+completa, com o dicionário das 12 colunas, filtros, fórmula, limitações e
 reprodutibilidade, está no
-[README da base SISVAN](../tratados/sisvan/criancas_menores_5/README.md).
-Os [metadados do produto](../tratados/sisvan/criancas_menores_5/indicadores_altura_peso_idade_menores_5_2025.metadados.json),
-o [manifesto de coletas](../../metadados/manifestos/sisvan_coletas.csv) e os
+[README da base SISVAN](sisvan/README.md).
+Os [metadados da consulta](sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.metadados.json),
+o [manifesto da nova coleta](../../metadados/manifestos/sisvan_coleta_20261004T205844Z.csv) e os
 XLSX oficiais permanecem nas camadas de origem do projeto.
 
-O CSV consolidado do SISVAN é um **produto derivado**: combina dois índices e
-calcula DAI e DPI. A fidelidade desta cópia ao CSV existente não a transforma
-em uma exportação bruta do SISVAN.
+O CSV SISVAN é uma **conversão** dos XLSX por UF: achata cabeçalhos e conserva
+as células; não combina índices nem calcula DAI. Os XLSX são os arquivos
+originais literalmente fiéis à fonte. A entrada CSV não contém DPI nem peso.
 
 ## Leitura e integração territorial
 
@@ -109,8 +111,8 @@ documentar perdas antes de decidir como integrar as fontes.
 
 Os CSVs usam vírgula como delimitador. No IVS/IDHM há números com ponto decimal
 e outros com vírgula decimal entre aspas. CADINSAN também contém percentuais
-com vírgula decimal e o símbolo `%`. O CSV do SISVAN distingue percentuais
-oficiais com `%` dos percentuais derivados numéricos. Tratar esses formatos
+com vírgula decimal e o símbolo `%`. O CSV do SISVAN contém somente percentuais
+oficiais com `%`, não percentuais derivados. Tratar esses formatos
 por coluna em código, sem editar os arquivos de entrada. Ler como UTF-8 com
 suporte a BOM (`utf-8-sig`) para evitar alterações no primeiro cabeçalho.
 
@@ -122,13 +124,14 @@ suporte a BOM (`utf-8-sig`) para evitar alterações no primeiro cabeçalho.
 - CadÚnico JSON mede pessoas; o denominador do CadInsan mede famílias.
   Uma contagem absoluta não permite calcular cobertura sem um denominador
   populacional compatível; esse denominador não está incluído nesta seleção.
-- DAI e DPI têm denominadores próprios e não devem ser somados. O SISVAN se
+- DAI é calculado no notebook com o total de Altura X Idade. O SISVAN se
   refere à população acompanhada e registrada, não automaticamente à população
   inteira do município.
-- O município de Boa Esperança do Norte (MT) tem total avaliado zero nos dois
-  índices. Os percentuais derivados `0.0` nessa linha devem ser tratados como
-  ausência de observações para a análise, não como prevalência comprovadamente
-  nula.
+- O município de Boa Esperança do Norte (MT) tem total de altura zero. DAI
+  nessa linha é ausência (`NaN`), não prevalência comprovadamente nula.
+- Algumas contagens da fonte são decimais por artefato do exportador. Não
+  corrigi-las na entrada. O notebook interpreta escalas e exporta auditoria
+  com ambiguidades; consultar o README SISVAN antes de usar números absolutos.
 - Preservar as diferenças entre risco alimentar, vulnerabilidade social e estado
   nutricional; associações municipais não demonstram causalidade.
 
@@ -169,10 +172,13 @@ cd dados/pesquisa
 sha256sum -c SHA256SUMS
 ```
 
-Esta pasta é uma seleção fixa dos dados já existentes. Novas coletas não
+Esta pasta é uma seleção fixa, incluindo a nova coleta SISVAN identificada.
+Novas coletas futuras não
 atualizam automaticamente estas cópias. Ao adotar dados novos, registrar a
 nova versão, atualizar os hashes e revisar períodos e cobertura.
 
 O IMC por idade, produtos legados, checkpoints e relatórios combinando consultas
 distintas permanecem nas pastas de origem. Esta seleção acompanha o recorte
-principal aprovado de altura e peso por idade em menores de cinco anos.
+principal aprovado de altura por idade em menores de cinco anos.
+A antiga cópia conjunta de altura/peso está em
+`dados/historico/pesquisa_sisvan_altura_peso_2025/`, sem alteração de conteúdo.
