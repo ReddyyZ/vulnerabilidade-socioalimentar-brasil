@@ -109,14 +109,19 @@ Essa é a estrutura de destino. A adoção deverá preservar arquivos e diretór
 
 ## 4. Arquitetura específica da coleta do SISVAN
 
-### 4.1 Índices mantidos
+### 4.1 Fases e índices mantidos
 
-O projeto deverá coletar e preservar duas famílias de dados:
+O projeto coleta e preserva as seguintes famílias de dados:
 
-1. **IMC por idade**, mantendo a coleta existente;
-2. **Altura por idade**, como nova base independente.
+1. **Crianças:** IMC por idade e altura por idade;
+2. **Adolescentes:** IMC por idade e altura por idade;
+3. **Adultos:** IMC;
+4. **Idosos:** IMC;
+5. **Gestantes:** IMC por semana gestacional, em base separada.
 
-Os dois índices não deverão ser misturados nos arquivos brutos porque possuem categorias nutricionais e interpretações diferentes.
+Índices e fases não são misturados nos arquivos brutos porque possuem categorias
+nutricionais e interpretações diferentes. O coletor valida os cabeçalhos próprios
+de cada combinação antes de produzir qualquer base derivada.
 
 ### 4.2 Faixas etárias configuráveis
 
@@ -178,9 +183,13 @@ dados/brutos/sisvan/
 ├── imc_por_idade/
 │   ├── sisvan_imc_por_idade_<faixa>_<ano>_<abrangencia>.<extensao>
 │   └── ...
-└── altura_por_idade/
+├── altura_por_idade/
     ├── sisvan_altura_por_idade_<faixa>_<ano>_<abrangencia>.<extensao>
     └── ...
+├── adolescente/<indice>/<faixa>/<ano>/ufs/<UF>.xlsx
+├── adulto/imc/<faixa>/<ano>/ufs/<UF>.xlsx
+├── idoso/imc/<faixa>/<ano>/ufs/<UF>.xlsx
+└── gestante/imc_por_semana_gestacional/<faixa>/<ano>/ufs/<UF>.xlsx
 ```
 
 ### 5.2 Regras de nomenclatura
@@ -246,11 +255,19 @@ Toda coluna acrescentada deverá possuir origem documentada.
 
 ### 7.3 Camada tratada
 
-Contém indicadores prontos para análise. Para o SISVAN, deverão existir inicialmente dois produtos separados:
+Contém indicadores prontos para análise. Para o SISVAN, os produtos permanecem
+separados por consulta, fase e finalidade:
 
 ```text
-dados/tratados/sisvan/sisvan_imc_por_idade_consolidado.<extensao>
-dados/tratados/sisvan/sisvan_altura_por_idade_consolidado.<extensao>
+dados/tratados/sisvan/
+├── imc_por_idade/                  # consultas infantis individuais
+├── altura_por_idade/               # consultas infantis individuais
+├── consultas/<fase>/<indice>/      # demais consultas individuais
+├── faixas_somadas/<fase>/<indice>/ # soma solicitada pelo usuário
+├── por_fase/                        # categorias oficiais na visão geral
+├── harmonizados/                    # grupos comparáveis por fase
+├── populacao_geral/                 # crianças + adolescentes + adultos + idosos
+└── gestantes/                        # produto separado
 ```
 
 Esses arquivos poderão incluir colunas de controle que não existem na fonte, como:
@@ -335,6 +352,33 @@ Base analítica
         ↓
 Tabelas, mapas, gráficos e modelos
 ```
+
+## 9.1 Comandos implementados para agregação
+
+Selecionar e somar faixas infantis sem sobreposição, uma saída por índice:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --indices imc_por_idade,altura_por_idade \
+  --faixas-etarias 0-5,5-10 \
+  --somar-faixas
+```
+
+Construir a visão geral de crianças, adolescentes, adultos e idosos:
+
+```bash
+python3 scripts/coletar_sisvan.py --populacao-geral
+```
+
+Acrescentar a base separada de gestantes:
+
+```bash
+python3 scripts/coletar_sisvan.py --populacao-geral --incluir-gestantes
+```
+
+`--todas-faixas` continua significando as nove consultas infantis oficiais e
+pode ser usado para concatenação. Como elas se sobrepõem, sua combinação com
+`--somar-faixas` é rejeitada antes da coleta.
 
 Uma etapa só deverá avançar quando as verificações previstas na etapa anterior forem aprovadas.
 

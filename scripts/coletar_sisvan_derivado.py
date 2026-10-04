@@ -105,16 +105,19 @@ def get_ibge(s, timeout, selected):
 
 def report_payload(
     year, uf, index_code="4", age_start="0", age_end="5",
+    life_cycle="1", adolescent_index_code="1", pregnancy_age="99",
 ):
     # coMunicipioIbge=99 e essencial; vazio devolve somente totais.
     return {
         "excel": "1", "tpRelatorio": "2", "coVisualizacao": "3",
         "nuAno": str(year), "nuMes[]": "99", "tpFiltro": "M",
         "coRegiao": "99", "coUfIbge": uf, "coMunicipioIbge": "99",
-        "noRegional": "", "st_cobertura": "99", "nu_ciclo_vida": "1",
+        "noRegional": "", "st_cobertura": "99",
+        "nu_ciclo_vida": str(life_cycle),
         "nu_idade_inicio": str(age_start), "nu_idade_fim": str(age_end),
         "nu_indice_cri": str(index_code),
-        "nu_indice_ado": "1", "nu_idade_ges": "99", "ds_sexo2": "1",
+        "nu_indice_ado": str(adolescent_index_code),
+        "nu_idade_ges": str(pregnancy_age), "ds_sexo2": "1",
         "ds_raca_cor2": "99", "co_sistema_origem": "0",
         "CO_POVO_COMUNIDADE": "TODOS", "CO_ESCOLARIDADE": "TODOS",
         "tpAbrangencia": "M", "tpAbrangenciaEas": "",
@@ -137,7 +140,11 @@ def start_portal(s, timeout, limiter):
     page = http(s, "GET", PORTAL, timeout).text
     expected = [
         'action="/sisvan/relatoriopublico/estadonutricional"',
-        'name="coMunicipioIbge"', 'name="nu_indice_cri"',
+        'name="coMunicipioIbge"', 'name="nu_ciclo_vida"',
+        'value="1">CRIANÇA', 'value="2">ADOLESCENTE',
+        'value="3">ADULTO', 'value="4">IDOSO', 'value="5">GESTANTE',
+        'name="nu_indice_cri"', 'name="nu_indice_ado"',
+        'name="nu_idade_ges"',
         'value="3">Altura X Idade', 'value="4">IMC X Idade',
     ]
     missing = [x for x in expected if x not in page]

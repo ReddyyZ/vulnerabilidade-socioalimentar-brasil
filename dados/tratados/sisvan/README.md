@@ -85,6 +85,98 @@ python3 scripts/coletar_sisvan.py \
 
 Esse exemplo produz quatro bases consolidadas independentes.
 
+Para também somar essas faixas em um arquivo por índice:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --indices imc_por_idade,altura_por_idade \
+  --faixas-etarias 0-5,5-10 \
+  --somar-faixas
+```
+
+O coletor verifica a interseção dos intervalos antes de consultar o portal. A
+operação é interrompida se duas faixas se sobrepuserem. Os percentuais dos
+arquivos somados são recalculados com o total combinado; percentuais nunca são
+somados nem submetidos a média simples.
+
+A seleção infantil completa, sem sobreposição, também possui um atalho:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --indices imc_por_idade,altura_por_idade \
+  --todas-idades-infantis \
+  --somar-faixas
+```
+
+## Coletar outras fases da vida
+
+As combinações implementadas, conforme o formulário oficial, são:
+
+| Fase | Índices disponíveis | Faixa de referência |
+|---|---|---|
+| Criança | `imc_por_idade`, `altura_por_idade` | faixas oficiais entre 0 e menos de 10 anos |
+| Adolescente | `imc_por_idade`, `altura_por_idade` | 10 a menos de 20 anos |
+| Adulto | `imc` | 20 a menos de 60 anos |
+| Idoso | `imc` | 60 anos ou mais |
+| Gestante | `imc_por_semana_gestacional` | todas as idades gestacionais |
+
+Exemplo de coleta do IMC por idade de adolescentes:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --fases adolescente \
+  --indices imc_por_idade
+```
+
+O XLSX bruto mantém os nomes exatos devolvidos pelo SISVAN. Por exemplo,
+`Obesidade grave (5-10 anos)`, `Obesidade Grave` e `Obesidade Grau III` são
+categorias distintas de criança, adolescente e adulto e não são renomeadas na
+camada de origem.
+
+## Construir a visão geral da população acompanhada
+
+```bash
+python3 scripts/coletar_sisvan.py --populacao-geral
+```
+
+Esse comando seleciona automaticamente recortes etariamente exclusivos:
+
+- crianças de `0 a < 5` e `5 a < 10`;
+- adolescentes de `10 a < 20`;
+- adultos de `20 a < 60`;
+- idosos de `60 anos ou mais`.
+
+Ele gera:
+
+```text
+dados/tratados/sisvan/
+├── por_fase/<fase>_categorias_oficiais_<ano>.csv
+├── harmonizados/<fase>_harmonizado_<ano>.csv
+└── populacao_geral/estado_nutricional_populacao_geral_<ano>.csv
+```
+
+O mapeamento analítico utilizado está versionado em
+`configuracoes/sisvan/harmonizacao_v1.json`. Na base geral, `Magreza
+acentuada`, `Magreza` e `Baixo peso` permanecem em campos separados e formam,
+sem dupla soma, o `Déficit nutricional total`. Os denominadores próprios desses
+componentes também são preservados em colunas explícitas.
+
+Para coletar gestantes na mesma execução, mas mantê-las fora da soma geral:
+
+```bash
+python3 scripts/coletar_sisvan.py \
+  --populacao-geral \
+  --incluir-gestantes
+```
+
+O produto é gravado em `gestantes/estado_nutricional_gestantes_<ano>.csv`.
+Gestantes nunca são incluídas no total geral.
+
+Esses produtos representam pessoas contabilizadas nas consultas do SISVAN, e
+não toda a população residente. Em consulta anual, uma pessoa que muda de fase
+pode aparecer em mais de uma extração; por isso, os metadados não afirmam
+unicidade individual.
+
 ## Coletar todas as faixas e criar um arquivo único
 
 ```bash
@@ -101,7 +193,9 @@ dados/tratados/sisvan/sisvan_municipios_consultas_combinadas_2025.csv
 
 O arquivo único usa formato longo. Cada linha identifica o índice, a faixa etária, a classificação nutricional, a quantidade, o percentual e o total avaliado. Isso permite reunir índices com categorias diferentes sem perder informação.
 
-As faixas são concatenadas, nunca somadas. Como existem intervalos sobrepostos, uma mesma pessoa pode participar de mais de uma consulta.
+As faixas são concatenadas, nunca somadas. Como existem intervalos sobrepostos,
+uma mesma pessoa pode participar de mais de uma consulta. A combinação de
+`--todas-faixas` com `--somar-faixas` é rejeitada.
 
 Também é possível criar um arquivo único apenas para um índice:
 
@@ -144,6 +238,12 @@ O coletor verifica:
 - correspondência entre quantidades e percentuais;
 - esquema idêntico entre as UFs;
 - integridade dos arquivos brutos por SHA-256 no manifesto.
+- ausência de sobreposição antes de somar faixas;
+- cobertura municipal idêntica entre bases que serão combinadas;
+- correspondência integral com o dicionário de harmonização;
+- partição dos grupos harmonizados igual ao total;
+- déficit total igual a magreza acentuada + magreza + baixo peso;
+- exclusão de gestantes da população geral.
 
 Os testes locais podem ser executados com:
 

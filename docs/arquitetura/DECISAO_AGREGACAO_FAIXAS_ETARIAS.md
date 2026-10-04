@@ -1,6 +1,6 @@
 # Decisão metodológica: agregação etária e visão geral da população no SISVAN
 
-- **Status:** aprovada; implementação pendente
+- **Status:** aprovada e implementada na versão 4.0 do coletor
 - **Data da decisão:** 30 de setembro de 2026
 - **Escopo:** crianças, adolescentes, adultos e idosos acompanhados pelo SISVAN; gestantes em produto separado
 
@@ -46,15 +46,18 @@ Qualquer soma ou harmonização será identificada como produto derivado. Nenhum
 
 A visão geral será formada por fases da vida etariamente exclusivas:
 
-| Fase | Intervalo etário de referência | Papel na base geral |
-|---|---:|---|
-| Criança | 0 a menos de 10 anos | Incluída |
-| Adolescente | 10 a menos de 20 anos | Incluída |
-| Adulto | 20 a menos de 60 anos | Incluída |
-| Idoso | 60 anos ou mais | Incluída |
-| Gestante | Condição fisiológica específica | Mantida separada |
+| Fase | Código no formulário | Intervalo etário de referência | Papel na base geral |
+|---|---:|---:|---|
+| Criança | `1` | 0 a menos de 10 anos | Incluída |
+| Adolescente | `2` | 10 a menos de 20 anos | Incluída |
+| Adulto | `3` | 20 a menos de 60 anos | Incluída |
+| Idoso | `4` | 60 anos ou mais | Incluída |
+| Gestante | `5` | Condição fisiológica específica | Mantida separada |
 
-Os códigos, limites e nomes efetivamente enviados ao sistema deverão ser validados contra o formulário oficial antes da implementação. Uma mudança no SISVAN deverá interromper a coleta em vez de ser interpretada silenciosamente.
+Esses códigos, limites e nomes foram validados contra o formulário oficial na
+implementação. O coletor também valida a fase, o título e as categorias do XLSX;
+uma mudança no SISVAN interrompe a coleta em vez de ser interpretada
+silenciosamente.
 
 Neste projeto, “todas as faixas” passará a ter dois significados explícitos:
 
@@ -351,7 +354,7 @@ Os resultados deverão ser apresentados com:
 
 A comparação entre municípios não deverá usar apenas contagens absolutas. Quantidades serão úteis para dimensionamento da população acompanhada, enquanto prevalências e cobertura serão necessárias para comparação territorial.
 
-## 16. Critérios de aceite da futura implementação
+## 16. Critérios de aceite da implementação
 
 A funcionalidade será considerada concluída quando:
 
@@ -373,4 +376,18 @@ A funcionalidade será considerada concluída quando:
 
 ## 17. Estado da implementação
 
-Esta decisão está documentada e aprovada metodologicamente. Nenhuma alteração no coletor foi realizada como parte desta atualização. A implementação deverá ocorrer em etapa posterior.
+Esta decisão está implementada em `scripts/coletar_sisvan.py` desde a versão
+4.0 do coletor. Os principais controles são:
+
+- `--somar-faixas`: soma as faixas selecionadas separadamente para cada fase e índice;
+- `--todas-idades-infantis`: seleciona somente `0 a < 5` e `5 a < 10`;
+- `--populacao-geral`: coleta crianças, adolescentes, adultos e idosos e gera os produtos oficiais por fase, harmonizados por fase e geral;
+- `--incluir-gestantes`: acrescenta a coleta e o produto separado de gestantes;
+- `--harmonizar`: cria os produtos harmonizados das consultas de IMC selecionadas;
+- validação de interseção: interrompe qualquer soma de faixas sobrepostas antes da coleta;
+- `configuracoes/sisvan/harmonizacao_v1.json`: registra o mapeamento versionado entre cada categoria oficial e o grupo analítico.
+
+A validação incluiu testes automatizados e uma coleta piloto das seis consultas
+para uma UF. A execução nacional permanece uma operação explícita do usuário,
+pois envolve novas requisições e geração de dados, e não faz parte da simples
+atualização do código.
