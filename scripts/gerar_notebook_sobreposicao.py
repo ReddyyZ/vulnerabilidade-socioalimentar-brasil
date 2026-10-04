@@ -91,33 +91,63 @@ def build():
         if hidden:
             cell.metadata.update({"cellView": "form", "jupyter": {"source_hidden": True}})
         cells.append(cell)
+        return cell
+
+    sources = json.loads((ROOT / "fonte_dados.json").read_text(encoding="utf-8"))
 
     md("""
     # Áreas de risco alimentar e vulnerabilidade social no Brasil
 
     **Estudo ecológico municipal — sobreposição de critérios.**
 
-    Pergunta: onde coincidem IVS elevado, IDHM baixo, risco alimentar estimado elevado no
-    CadInsan e déficit de altura/estatura para idade (DAI) elevado no SISVAN?
+    **Pergunta da pesquisa:** identificar áreas do Brasil de maior risco alimentar
+    e vulnerabilidade social a partir de IVS, IDHM, CadÚnico, CadInsan e SISVAN.
 
-    IVS/IDHM: **2010**. CadInsan: **famílias, janeiro de 2025**.
-    CadÚnico JSON: **pessoas, junho de 2026**. SISVAN: crianças de
-    **0 a menos de 5 anos acompanhadas pelo sistema durante 2025**.
-    O catálogo corresponde por hash às três bases sociais. A análise é exploratória e não estabelece
-    causalidade nem estima a prevalência de fome na população inteira.
+    **Objetivo da análise:** identificar municípios onde coincidem IVS elevado,
+    IDHM baixo, risco alimentar estimado elevado no CadInsan e déficit de
+    altura para idade elevado nas crianças acompanhadas pelo SISVAN.
+    CadÚnico e déficit de peso para idade ajudam a caracterizar esses territórios.
 
-    **Como executar:** no Colab, abrir este `.ipynb` pelo menu **Arquivo → Abrir
-    notebook → Upload**, revisar os parâmetros abaixo e usar **Ambiente de
-    execução → Executar tudo**. As quatro bases e a malha de apoio estão
-    incorporadas; não é necessário fornecer outros arquivos ou credenciais.
-    A instalação de dependências pode exigir internet. As fontes embutidas
-    ficam preservadas; os resultados vão para uma pasta separada.
+    A unidade de análise é o **município**, não a pessoa ou a família. A
+    sobreposição identifica convergência de indicadores, sem ranking composto,
+    inferência causal ou estimativa de fome em toda a população municipal.
+    """)
+    md(f"""
+    ## 1. Bases de dados e procedência
 
-    **Versão das quatro bases selecionadas:** commit `3391236`. O processamento
-    abaixo deriva indicadores analíticos e mantém também os valores do arquivo.
+    A análise reúne **quatro arquivos municipais**, que contêm os cinco
+    indicadores da pesquisa. IVS e IDHM estão no mesmo arquivo.
+    IVS significa **Índice de Vulnerabilidade Social**; IDHM, **Índice de
+    Desenvolvimento Humano Municipal**; CadÚnico, **Cadastro Único para
+    Programas Sociais**. CadInsan é o indicador municipalizado de risco de
+    insegurança alimentar grave a partir do CadÚnico.
+
+    | Base | Fonte original / instituição responsável | De onde o arquivo foi obtido | Referência e unidade | Registros municipais |
+    |---|---|---|---|---:|
+    | IVS e IDHM | [Atlas IVS / Ipea](http://ivs.ipea.gov.br/index.php/pt/planilha); IDHM do Atlas do Desenvolvimento Humano (PNUD, Ipea e FJP) | [CSV publicado por Cozinhas Solidárias]({sources['atlasivs_municipios_2010.csv']}) | 2010; índices municipais | 5.565 |
+    | CadÚnico | [MDS / SAGI](https://aplicacoes.mds.gov.br/sagi/servicos/misocial) | [JSON publicado por Cozinhas Solidárias]({sources['municipios-cadunico.json']}) | Junho/2026; pessoas cadastradas | 5.564 |
+    | CadInsan | [MDS — relatório CadInsan 2025](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf) | [CSV publicado por Cozinhas Solidárias]({sources['CADINSAN_2025_dados_municipais.csv']}) | Janeiro/2025; famílias do universo analisado | 5.570 |
+    | SISVAN | Ministério da Saúde — Sistema de Vigilância Alimentar e Nutricional | Coleta direta dos [relatórios públicos]({sources['sisvan_relatorios']}) de Altura X Idade e Peso X Idade | 2025; crianças de 0 a menos de 5 anos acompanhadas pelo sistema | 5.571 |
+
+    **Procedência:** as três bases sociais foram obtidas do
+    [repositório de Cozinhas Solidárias](https://github.com/TriangulosTecnologia/cozsolidarias),
+    não extraídas diretamente dos portais oficiais nesta pesquisa. Seus períodos
+    e unidades foram conferidos no catálogo que acompanha os arquivos. O
+    relatório oficial do MDS complementa a referência mensal do CadInsan.
+    A base SISVAN utilizada combina os dois relatórios coletados; os percentuais
+    de déficit são derivados das contagens originais pelas fórmulas apresentadas abaixo.
+
+    **Apoio cartográfico:** malha municipal simplificada obtida diretamente da
+    [API v4 do IBGE](https://servicodados.ibge.gov.br/api/docs/malhas?versao=4).
+    A API utilizada não informa o ano da malha; ela é apoio ilustrativo, não uma
+    harmonização dos limites municipais entre os diferentes períodos.
+
+    Os arquivos estão incorporados ao notebook. Para reproduzir no Colab,
+    revisar os parâmetros e selecionar **Ambiente de execução → Executar tudo**.
+    A preparação do ambiente pode exigir internet; a análise não faz nova coleta.
     """)
     md("""
-    ## 1. Parâmetros da análise
+    ## 2. Estratégia e parâmetros da análise
 
     A regra principal exige **os quatro critérios simultaneamente**: IVS,
     CadInsan e DAI elevados, e IDHM baixo. DPI e CadÚnico contextualizam os
@@ -133,24 +163,20 @@ def build():
     sobre municípios com o denominador mínimo; CadInsan usa seu universo válido.
     Esses quantis são nacionais, não calculados apenas sobre municípios que
     atendem aos cortes sociais. DPI mantém o quantil como informação complementar.
-    Cada município tem o mesmo peso nos quantis; empates no corte são incluídos.
-    Por isso o grupo elevado pode conter mais de 25% dos municípios.
+    O percentil 75 delimita aproximadamente os 25% maiores valores municipais,
+    não 75% da população. Cada município tem o mesmo peso; empates são incluídos.
+    O mínimo de 100 avaliações é uma precaução operacional, não uma exigência
+    oficial nem garantia de representatividade; será examinado na sensibilidade.
 
     `com_PBF` é o cenário inicial, considerando o efeito do benefício na renda.
     `sem_PBF` é o cenário contrafactual que desconsidera esse efeito e entra na
     sensibilidade. Não são dois grupos de beneficiários e não beneficiários.
-    O catálogo e o relatório do MDS documentam unidades e cenários; o relatório
-    indica janeiro/2025 e famílias com cadastro atualizado nos últimos 12 meses.
-    O denominador é o universo de famílias considerado no arquivo CadInsan.
-    O JSON de pessoas em junho/2026 não substitui esse denominador.
-
-    Os percentuais CadInsan são **recalculados sem arredondamento** pelos
-    valores absolutos e denominadores do CSV. As proporções originais ficam
-    preservadas em `*_arquivo`. Essa escolha evita empates artificiais por
-    arredondamento e reproduz o procedimento descrito no catálogo.
+    CadInsan considera famílias com cadastro atualizado nos últimos 12 meses,
+    com referência janeiro/2025. As pessoas cadastradas no JSON de junho/2026
+    não substituem esse denominador de famílias.
     """)
     code("""
-    QUANTIL = 0.75  # CadInsan/DAI e DPI complementar; não altera IVS/IDHM
+    QUANTIL = 0.75  # CadInsan/DAI e DPI complementar
     MINIMO_AVALIADOS = 100
     CENARIO_CADINSAN = "com_PBF"  # opções: "com_PBF", "sem_PBF"
     QUANTIS_SENSIBILIDADE = [0.75, 0.80]
@@ -161,14 +187,13 @@ def build():
 
     """)
     md("""
-    ## 2. Ambiente e recuperação das bases incorporadas
+    ### Preparação da execução
 
-    Esta célula confere bibliotecas e restaura o pacote autocontido em uma pasta
-    da sessão. A próxima célula contém o pacote compactado e pode ficar recolhida.
-    Os hashes das quatro bases são conferidos antes do processamento. A malha
-    tem hash próprio. Não há nova consulta ao SISVAN ou às fontes sociais.
+    As células técnicas recolhidas preparam o ambiente e recuperam os arquivos.
+    A integridade das entradas é verificada antes da análise; os arquivos
+    originais permanecem separados dos resultados derivados.
     """)
-    code("""
+    setup_cell = code("""
     import importlib.util
     import subprocess
     import sys
@@ -204,8 +229,7 @@ def build():
     PASTA_FIGURAS.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.max_columns", 30)
     pd.set_option("display.float_format", lambda x: f"{x:.3f}")
-    print("Resultados:", PASTA_SAIDA)
-    """)
+    """, hidden=True)
     encoded = payload()
     code('# @title Bases e malha incorporadas — executar sem editar\n'
          f'PACOTE_BASE64 = "{encoded}"\n'
@@ -215,15 +239,13 @@ def build():
          '        if not destino.is_relative_to(PASTA_DADOS.resolve()):\n'
          '            raise ValueError("Caminho inválido no pacote de dados")\n'
          '    pacote.extractall(PASTA_DADOS)\n'
-         'print("Pacote recuperado. As quatro bases mantêm seus bytes originais.")', hidden=True)
+         'print("Bases recuperadas para análise.")', hidden=True)
     md("""
-    ## 3. Funções reproduzíveis de leitura e análise
+    ## 3. Integração e disponibilidade dos dados
 
-    O código abaixo é incorporado de `scripts/analise_sobreposicao.py`. Ele
-    converte números somente em memória, valida categorias e denominadores,
-    realiza junções externas `one_to_one` por prefixos únicos e calcula as flags
-    com valores ausentes quando a classificação não é possível. Pode ser
-    expandido para auditoria; as células seguintes mostram a execução.
+    A união das bases preserva todos os municípios disponíveis. A integração
+    verifica a unicidade dos códigos, categorias e denominadores. Ausência de
+    informação é mantida como ausência, não substituída por zero.
     """)
     code('# @title Funções de análise — executar sem editar\n' +
          (ROOT / "scripts/analise_sobreposicao.py").read_text(encoding="utf-8"), hidden=True)
@@ -233,20 +255,18 @@ def build():
     base, controle_integracao, hashes_entrada = prepare_base(PASTA_DADOS)
     figure_style()
     print("Municípios na união:", len(base))
-    display(hashes_entrada)
-    display(validacao_catalogo)
+    print("Integridade das bases e correspondência com o catálogo verificadas.")
     display(controle_integracao)
     ausencias = base.loc[~base[["tem_ivs_idhm", "tem_cadunico", "tem_cadinsan", "tem_sisvan"]].all(axis=1),
                          ["codigo_ibge_6", "codigo_ibge_7", "municipio", "uf",
                           "tem_ivs_idhm", "tem_cadunico", "tem_cadinsan", "tem_sisvan"]]
     display(ausencias)
-    display(dictionary())
     """)
     md("""
     **Interpretação:** a união preserva municípios sem informações sociais.
-    Código SISVAN tem seis dígitos; as fontes sociais têm sete. Prefixos e códigos
-    são conferidos quanto à unicidade e a conflitos. A malha será auditada mais
-    adiante. Isso não demonstra que limites territoriais de 2010 e 2025 sejam
+    O código SISVAN tem seis dígitos; as fontes sociais têm sete. A ligação usa
+    o prefixo único de seis dígitos, com verificação de conflitos. Isso não
+    demonstra que limites territoriais de 2010 e 2025 sejam
     idênticos. CadÚnico JSON (pessoas, junho/2026) e `Cadastros_Cadunico`
     (famílias, janeiro/2025) ficam separados. Sem denominador populacional
     compatível, a contagem de pessoas não se transforma em proporção de cobertura.
@@ -263,10 +283,15 @@ def build():
     $$CadInsan_{cenario}(\%)=100\times
     \frac{Cadinsan\_absoluto\_{cenario}}{Cadastros\_Cadunico}$$
 
-    Os indicadores são recalculados **sem arredondamento** para comparação e
-    classificação. Os valores arredondados do CSV ficam preservados nas colunas
-    `*_pct_arquivo`. Denominador zero produz `NaN` analítico, mesmo que o CSV
-    informe `0.0`. DAI e DPI não podem ser somados, nem os seus denominadores.
+    **DAI** é o percentual de déficit de altura para idade; **DPI**, o percentual
+    de déficit de peso para idade. CadInsan usa famílias em risco estimado no
+    numerador e famílias do universo analisado no denominador.
+
+    Os percentuais são recalculados **sem arredondamento** para evitar empates
+    artificiais nos cortes; os valores de origem permanecem preservados.
+    Denominador zero gera percentual indefinido, não ausência de déficit.
+    DAI e DPI não podem ser somados: a interseção das crianças entre os índices
+    não é identificada nos relatórios agregados, e seus denominadores são separados.
     """)
     code("""
     qualidade_sisvan = pd.DataFrame({
@@ -291,11 +316,10 @@ def build():
     """)
     md("""
     **Interpretação:** esses totais descrevem os registros dos relatórios
-    consultados, sem demonstração de cobertura ou unicidade individual além da
-    metodologia da fonte. Os percentuais agregados são razões entre somas, não
+    consultados. Os percentuais agregados são razões entre somas, não
     médias dos percentuais municipais. Muitos registros não garantem
     representatividade. A população municipal de menores de cinco anos não está
-    disponível neste pacote; portanto não calculamos cobertura populacional.
+    disponível nesta análise; portanto não calculamos cobertura populacional.
     """)
     md("""
     ## 5. Classificação exploratória
@@ -312,7 +336,7 @@ def build():
     display(classificados["perfil"].value_counts().rename_axis("perfil").reset_index(name="municipios"))
     sem_classificacao = classificados.loc[~classificados["elegivel_principal"],
         ["codigo_ibge_6", "municipio", "uf", "avaliados_altura", "motivo_nao_classificacao"]]
-    display(sem_classificacao)
+    print("Municípios com informação insuficiente:", len(sem_classificacao))
     comparacao_arredondamento, cortes_percentuais_csv = compare_rounding(
         base, classificados, QUANTIL, MINIMO_AVALIADOS, CENARIO_CADINSAN)
     total_com_csv = int(comparacao_arredondamento["selecionado_percentual_csv"].fillna(False).sum())
@@ -320,8 +344,6 @@ def build():
     display(Markdown(f"**Efeito do arredondamento:** {total_com_csv} municípios com percentuais do CSV; "
                      f"{total_recalculado} com as razões sem arredondamento usadas na análise."))
     display(comparacao_arredondamento.loc[comparacao_arredondamento["mudou_selecao"]])
-    display(Markdown("**CadÚnico:** pessoas de junho/2026 são informação contextual; "
-                     "a regra principal é IVS elevado + IDHM baixo + CadInsan elevado + DAI elevado."))
     """)
     md("""
     ## 6. Distribuições, associações e redundância
@@ -352,11 +374,9 @@ def build():
     md("""
     ## 7. Mapas nacionais e disponibilidade dos dados
 
-    A malha simplificada incorporada vem da **API v4 do IBGE**. Essa versão não
-    informa o ano por parâmetro; não a descrevemos como malha de 2025. A data,
-    URL e hash estão nos metadados. A geometria é apoio ilustrativo: os códigos
-    são auditados, mas isso não harmoniza limites históricos. Municípios sem
-    informações suficientes permanecem visíveis em cinza.
+    Os mapas mostram os indicadores e sua coincidência no território municipal.
+    A correspondência dos códigos com a malha do IBGE é verificada; municípios
+    com informação insuficiente para a sobreposição aparecem em cinza.
     """)
     code("""
     caminho_malha = PASTA_DADOS / "apoio/ibge/malha_municipal_simplificada.geojson"
@@ -365,7 +385,6 @@ def build():
         raise ValueError("Hash da malha diferente do registrado")
     geometria = json.loads(caminho_malha.read_text())
     controle_geometria = geometry_audit(geometria, base)
-    display(pd.DataFrame([metadados_malha]))
     print("Municípios da base sem geometria:", int((~controle_geometria["tem_geometria"]).sum()))
     print("Feições da malha sem registro na base:",
           len({str(f["properties"]["codarea"])[:6] for f in geometria["features"]} - set(base["codigo_ibge_6"])))
@@ -418,13 +437,15 @@ def build():
     md("""
     ## 9. Sensibilidade e estabilidade da seleção
 
-    Cada cenário mantém IVS ≥ 0,401 e IDHM < 0,600 e recalcula os quantis nacionais,
-    inclusive o corte do DAI sobre
-    municípios com o mínimo escolhido. Portanto a comparação avalia tanto a
-    mudança de elegibilidade quanto a mudança da referência do corte. O Jaccard
-    compara a interseção das listas com sua união, em relação à regra principal.
-    Percentis 75/80 variam somente para CadInsan/DAI e DPI complementar;
-    os quatro critérios permanecem obrigatórios em todas as especificações.
+    São comparados percentis 75/80, mínimos de 30/50/100 avaliações e cenários
+    CadInsan com/sem efeito do Bolsa Família. IVS ≥ 0,401 e IDHM < 0,600 permanecem
+    fixos, e os quatro critérios continuam obrigatórios.
+
+    Cada combinação recalcula o corte do DAI entre municípios com o mínimo
+    escolhido: mudam tanto a elegibilidade quanto o universo do quantil.
+    O índice de **Jaccard** é a quantidade de municípios comuns às duas listas
+    dividida pela quantidade presente em pelo menos uma delas; 1 indica listas
+    idênticas e 0 indica nenhuma coincidência.
 
     A frequência de seleção é a fração das especificações testadas, **não uma
     probabilidade de risco ou medida de incerteza amostral**. Os cenários CadInsan
@@ -446,9 +467,8 @@ def build():
     md("""
     ## 10. Síntese para o laboratório e limitações
 
-    A síntese abaixo é preenchida com os resultados da execução. Antes de usar
-    como conclusão definitiva, discutir os cortes exploratórios e a
-    compatibilidade temporal e territorial das fontes.
+    A síntese reúne a seleção principal, sua sensibilidade e os limites de
+    interpretação. As fontes não constituem um retrato simultâneo da população.
     """)
     code(r'''
     elegiveis = int(classificados["elegivel_principal"].sum())
@@ -472,21 +492,18 @@ def build():
     municipal não demonstra causalidade nem relações individuais.\n\n\
     **Processamento:** percentuais CadInsan recalculados sem arredondamento; \
     percentuais originais preservados. Com os percentuais do CSV, esta configuração selecionaria \
-    {total_com_csv} municípios. O catálogo incorporado corresponde às três bases sociais por hash.\n"""
+    {total_com_csv} municípios.\n"""
     display(Markdown(resumo_execucao))
     ''')
     md("""
-    ## 11. Exportação e reprodução
+    ## 11. Resultados para consulta e reprodução
 
     Exportamos a base derivada, lista completa de municípios com convergência,
     cortes, controles de qualidade, sensibilidade, dicionário, resumo e figuras
-    PNG/SVG. Os CSVs usam UTF-8 com BOM. O manifesto registra parâmetros, hashes e
-    versões efetivamente utilizadas. A execução não modifica as quatro bases.
-
-    Cada execução recebe uma pasta própria, evitando mistura de figuras de
-    configurações distintas. Um ZIP reúne resultados e documentação das entradas.
-    Para baixar no Colab, ativar `BAIXAR_RESULTADOS_NO_COLAB` no início ou usar
-    a aba de arquivos. A exportação não inclui dados pessoais individuais.
+    em um ZIP. O registro de execução conserva parâmetros e identificação das
+    entradas para reprodução. A exportação não inclui dados pessoais individuais.
+    O ZIP pode ser baixado pela aba de arquivos do Colab ou pela opção de
+    download nos parâmetros.
     """)
     code("""
     identificador = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
@@ -539,7 +556,6 @@ def build():
     shutil.copy2(PASTA_DADOS / "SHA256SUMS", destino / "documentacao_entradas")
     arquivo_zip = shutil.make_archive(str(destino), "zip", root_dir=destino)
     print("ZIP pronto:", arquivo_zip)
-    display(pd.DataFrame([ambiente]))
     if BAIXAR_RESULTADOS_NO_COLAB:
         try:
             from google.colab import files
@@ -549,27 +565,22 @@ def build():
             files.download(arquivo_zip)
     """)
     md("""
-    ## Referências e documentação
+    ## Referências
 
-    - [CadInsan — MDS](https://www.gov.br/mds/pt-br/Sisan/monitoramento-da-san/cadinsan).
+    - [Repositório de Cozinhas Solidárias — procedência das bases sociais](https://github.com/TriangulosTecnologia/cozsolidarias).
+    - [Atlas do Desenvolvimento Humano — PNUD, Ipea e FJP](https://www.undp.org/pt/brazil/desenvolvimento-humano/atlas-do-desenvolvimento-humano-no-brasil).
+    - [Cadastro Único — fonte SAGI/MDS](https://aplicacoes.mds.gov.br/sagi/servicos/misocial).
+    - [CadInsan — MDS](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADinsan).
     - [Relatório CadInsan com referência janeiro/2025 — MDS](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf).
     - [SISVAN — Ministério da Saúde](https://www.gov.br/saude/pt-br/composicao/saps/vigilancia-alimentar-e-nutricional/sisvan).
     - [IVS e IDHM — Ipea](https://repositorio.ipea.gov.br/bitstream/11058/8257/2/vulnerability.pdf).
     - [Faixas do IVS — Atlas do Ipea](https://repositorio.ipea.gov.br/bitstream/11058/4381/1/Atlas_da_vulnerabilidade_social_nos_municipios_brasileiros.pdf).
     - [Faixas do IDHM — PNUD](https://www.undp.org/sites/g/files/zskgke326/files/2024-05/anexo_estatistico_pnud_21maio24_isbn_web2.pdf).
     - [API de malhas simplificadas v4 — IBGE](https://servicodados.ibge.gov.br/api/docs/malhas?versao=4).
-    - No projeto: `docs/metodologia/PLANO_ANALISE_NOTEBOOK_COLAB.md`,
-      `dados/pesquisa/README.md`, `dataset_catalogue.json`, `scripts/analise_sobreposicao.py` e
-      `scripts/gerar_notebook_sobreposicao.py`.
-
-    Unidades e períodos são documentados no catálogo, com correspondência de
-    hashes. O relatório oficial complementa a referência mensal e os cenários
-    do CadInsan. Essa validação documental não elimina limites de desenho,
-    cobertura, compatibilidade territorial ou escolhas exploratórias de corte.
     """)
     # Hash do código-fonte incorporado, para rastrear a análise do manifesto.
     digest = hashlib.sha256((ROOT / "scripts/analise_sobreposicao.py").read_bytes()).hexdigest()
-    cells[2].source += f'\nCODIGO_ANALISE_SHA256 = "{digest}"'
+    setup_cell.source += f'\nCODIGO_ANALISE_SHA256 = "{digest}"'
     for index, cell in enumerate(cells):
         cell.id = f"sobreposicao-{index:02d}"
     nb.cells = cells

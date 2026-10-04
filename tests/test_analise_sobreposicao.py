@@ -254,6 +254,34 @@ class ResearchSnapshotTests(unittest.TestCase):
             audit = analysis.geometry_audit(json.loads(mesh_bytes), self.base)
             self.assertTrue(audit.tem_geometria.all())
 
+    def test_notebook_explains_sources_and_method_without_project_documents(self):
+        import nbformat
+        notebook = nbformat.read(ROOT / "notebooks/01_sobreposicao_criterios.ipynb", as_version=4)
+        first_code = next(i for i, cell in enumerate(notebook.cells) if cell.cell_type == "code")
+        opening = "\n".join(cell.source for cell in notebook.cells[:first_code])
+        markdown = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "markdown")
+        sources = json.loads((ROOT / "fonte_dados.json").read_text())
+        self.assertIn("Bases de dados e procedência", opening)
+        self.assertIn("Pergunta da pesquisa", opening)
+        for filename in ("atlasivs_municipios_2010.csv", "municipios-cadunico.json",
+                         "CADINSAN_2025_dados_municipais.csv", "sisvan_relatorios"):
+            self.assertIn(sources[filename], opening)
+        for text in ("2010", "Junho/2026", "Janeiro/2025", "0 a menos de 5 anos",
+                     "pessoas cadastradas", "famílias", "API v4 do IBGE", "não extraídas diretamente"):
+            self.assertIn(text, opening)
+        for text in ("3391236", "scripts/", "docs/metodologia/", "dados/pesquisa/", "No projeto:"):
+            self.assertNotIn(text, markdown)
+        for text in ("DAI", "DPI", "0,401", "0,600", "100 avaliações", "Jaccard", "causalidade"):
+            self.assertIn(text, markdown)
+        parameter_cell = notebook.cells[first_code]
+        self.assertIn("QUANTIL = 0.75", parameter_cell.source)
+        self.assertIn("MINIMO_AVALIADOS = 100", parameter_cell.source)
+        self.assertNotIn("CODIGO_ANALISE_SHA256", parameter_cell.source)
+        setup = next(cell for cell in notebook.cells if "CODIGO_ANALISE_SHA256 =" in cell.source)
+        self.assertEqual(setup.cell_type, "code")
+        self.assertTrue(setup.metadata["jupyter"]["source_hidden"])
+        self.assertEqual(sum(cell.cell_type == "code" for cell in notebook.cells), 13)
+
 
 if __name__ == "__main__":
     unittest.main()

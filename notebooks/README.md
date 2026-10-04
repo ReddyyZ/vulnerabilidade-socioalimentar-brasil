@@ -2,6 +2,20 @@
 
 Arquivo: [01_sobreposicao_criterios.ipynb](01_sobreposicao_criterios.ipynb).
 
+## Apresentação ao laboratório
+
+O notebook é autossuficiente: abre com a pergunta da pesquisa e uma tabela das
+bases, instituições responsáveis, links dos arquivos obtidos, períodos,
+unidades e registros municipais. Distingue os arquivos sociais obtidos no
+repositório de Cozinhas Solidárias da coleta direta dos relatórios SISVAN e da
+malha obtida do IBGE.
+
+Os textos se concentram na análise, fórmulas, interpretação e limitações.
+Histórico de commits e referências a documentos internos não aparecem no
+texto da apresentação. As células de preparação permanecem recolhidas;
+verificações completas e informações de reprodução continuam no processamento
+e nas exportações. Essa reorganização não muda dados, critérios ou resultados.
+
 ## Uso no Google Colab
 
 1. Baixar o `.ipynb` e abri-lo no Colab por **Arquivo → Abrir notebook → Upload**.
