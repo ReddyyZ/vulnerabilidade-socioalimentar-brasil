@@ -10,18 +10,29 @@ A configuração padrão está em `configuracoes/sisvan/coletas.json` e coleta:
 - abrangência: todos os municípios, uma requisição por UF;
 - fase da vida: criança;
 - faixa etária: 0 a menos de 5 anos;
-- índices: IMC por idade e altura por idade;
+- índices: altura por idade e peso por idade;
 - sexo, raça/cor, origem, povo/comunidade e escolaridade: todos.
 
-## Produtos nacionais
+## Produtos nacionais já preservados
 
 - `imc_por_idade/sisvan_municipios_imc_por_idade_0_a_menor_5_anos_2025.csv`;
 - `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv`;
 - `sisvan_municipios_consultas_combinadas_2025.csv`, em formato longo.
 
+Esses arquivos anteriores de IMC permanecem preservados. Uma nova execução da
+configuração padrão passa a gerar:
+
+- `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_<ano>.csv`;
+- `peso_por_idade/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_<ano>.csv`;
+- `criancas_menores_5/indicadores_altura_peso_idade_menores_5_<ano>.csv`.
+
 Cada CSV possui um arquivo `.metadados.json` correspondente, com os parâmetros da consulta, colunas, UFs e estatísticas de validação.
 
-Os CSVs são consolidações dos relatórios estaduais. O processo apenas achata o cabeçalho de dois níveis, normaliza as contagens que o XLSX representa com ponto de milhar e reúne as UFs. Não acrescenta indicadores calculados nem códigos de fontes externas.
+Os CSVs individuais por índice são consolidações dos relatórios estaduais. O
+processo apenas achata o cabeçalho de dois níveis, normaliza as contagens que o
+XLSX representa com ponto de milhar e reúne as UFs. Indicadores calculados
+aparecem somente no produto identificado como derivado em
+`criancas_menores_5/`.
 
 ## Camada bruta
 
@@ -29,8 +40,9 @@ Cada resposta oficial é mantida sem alteração:
 
 ```text
 dados/brutos/sisvan/
-├── imc_por_idade/<faixa>/<ano>/ufs/<UF>.xlsx
-└── altura_por_idade/<faixa>/<ano>/ufs/<UF>.xlsx
+├── altura_por_idade/<faixa>/<ano>/ufs/<UF>.xlsx
+├── peso_por_idade/<faixa>/<ano>/ufs/<UF>.xlsx
+└── imc_por_idade/<faixa>/<ano>/ufs/<UF>.xlsx  # preservado/opcional
 ```
 
 O hash SHA-256 e os filtros de cada XLSX estão registrados em:
@@ -52,6 +64,18 @@ O atalho histórico na raiz continua disponível:
 ```bash
 python3 coletar_sisvan_municipios.py
 ```
+
+Quando as duas consultas padrão terminam, o coletor cria automaticamente um
+produto analítico municipal com:
+
+- todas as categorias oficiais de `ALTURA X IDADE`;
+- todas as categorias oficiais de `PESO X IDADE`;
+- déficit de estatura, calculado pela soma de altura muito baixa e altura baixa;
+- déficit de peso para idade, calculado pela soma de peso muito baixo e peso baixo;
+- um denominador próprio para cada índice.
+
+Os dois déficits não são somados: os relatórios agregados não informam quais
+crianças aparecem simultaneamente nas duas classificações.
 
 ## Listar índices e faixas disponíveis
 
@@ -79,7 +103,7 @@ As listas da configuração podem ser ampliadas ou substituídas pela linha de c
 
 ```bash
 python3 scripts/coletar_sisvan.py \
-  --indices imc_por_idade,altura_por_idade \
+  --indices altura_por_idade,peso_por_idade \
   --faixas-etarias 0-5,5-10
 ```
 
@@ -89,7 +113,7 @@ Para também somar essas faixas em um arquivo por índice:
 
 ```bash
 python3 scripts/coletar_sisvan.py \
-  --indices imc_por_idade,altura_por_idade \
+  --indices altura_por_idade,peso_por_idade \
   --faixas-etarias 0-5,5-10 \
   --somar-faixas
 ```
@@ -103,7 +127,7 @@ A seleção infantil completa, sem sobreposição, também possui um atalho:
 
 ```bash
 python3 scripts/coletar_sisvan.py \
-  --indices imc_por_idade,altura_por_idade \
+  --indices altura_por_idade,peso_por_idade \
   --todas-idades-infantis \
   --somar-faixas
 ```
@@ -114,7 +138,7 @@ As combinações implementadas, conforme o formulário oficial, são:
 
 | Fase | Índices disponíveis | Faixa de referência |
 |---|---|---|
-| Criança | `imc_por_idade`, `altura_por_idade` | faixas oficiais entre 0 e menos de 10 anos |
+| Criança | `altura_por_idade`, `peso_por_idade`, `imc_por_idade` | faixas oficiais entre 0 e menos de 10 anos |
 | Adolescente | `imc_por_idade`, `altura_por_idade` | 10 a menos de 20 anos |
 | Adulto | `imc` | 20 a menos de 60 anos |
 | Idoso | `imc` | 60 anos ou mais |
@@ -185,7 +209,9 @@ python3 scripts/coletar_sisvan.py \
   --arquivo-unico
 ```
 
-Com os dois índices da configuração padrão, esse comando executa 18 consultas nacionais: nove faixas para IMC por idade e nove para altura por idade. Ele mantém os 18 CSVs individuais e cria também:
+Com os dois índices da configuração padrão, esse comando executa 18 consultas
+nacionais: nove faixas para altura por idade e nove para peso por idade. Ele
+mantém os 18 CSVs individuais e cria também:
 
 ```text
 dados/tratados/sisvan/sisvan_municipios_consultas_combinadas_2025.csv
@@ -212,7 +238,7 @@ O caminho do consolidado pode ser escolhido com `--arquivo-unico-output`.
 
 ```bash
 python3 scripts/coletar_sisvan.py \
-  --indices imc_por_idade,altura_por_idade \
+  --indices altura_por_idade,peso_por_idade \
   --faixas-etarias 0-5,5-10 \
   --dry-run
 ```
@@ -237,13 +263,15 @@ O coletor verifica:
 - soma dos percentuais, considerando arredondamento;
 - correspondência entre quantidades e percentuais;
 - esquema idêntico entre as UFs;
-- integridade dos arquivos brutos por SHA-256 no manifesto.
+- integridade dos arquivos brutos por SHA-256 no manifesto;
 - ausência de sobreposição antes de somar faixas;
 - cobertura municipal idêntica entre bases que serão combinadas;
 - correspondência integral com o dicionário de harmonização;
 - partição dos grupos harmonizados igual ao total;
 - déficit total igual a magreza acentuada + magreza + baixo peso;
-- exclusão de gestantes da população geral.
+- exclusão de gestantes da população geral;
+- manutenção de denominadores separados para altura por idade e peso por idade;
+- déficit de estatura e déficit de peso nunca somados entre si.
 
 Os testes locais podem ser executados com:
 

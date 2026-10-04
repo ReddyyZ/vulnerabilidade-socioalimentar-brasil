@@ -3,14 +3,14 @@
   "consultas": [
     {
       "fase": "crianca",
-      "indice": "imc_por_idade",
+      "indice": "altura_por_idade",
       "faixas_etarias": [
         "0_a_menor_5_anos"
       ]
     },
     {
       "fase": "crianca",
-      "indice": "altura_por_idade",
+      "indice": "peso_por_idade",
       "faixas_etarias": [
         "0_a_menor_5_anos"
       ]

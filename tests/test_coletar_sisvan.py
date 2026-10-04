@@ -65,6 +65,43 @@ class SisvanCollectorTests(unittest.TestCase):
         )
         self.assertEqual(rows[0]["Altura Adequada para a Idade - %"], "70.0%")
 
+    def test_parse_peso_por_idade(self):
+        indicator = collector.INDICATORS["peso_por_idade"]
+        rows, schema = collector.parse_export(
+            self.workbook(indicator, [1, 2, 6, 1]), "RO", indicator,
+        )
+        stats = collector.validate(rows, schema)
+        self.assertEqual(stats["total"], 1)
+        self.assertEqual(
+            rows[0]["Peso Muito Baixo para a Idade - Quantidade"], 1,
+        )
+        self.assertEqual(rows[0]["Peso Adequado ou Eutrófico - %"], "60.0%")
+
+    def test_peso_por_idade_mantem_esquema_em_todas_faixas(self):
+        expected = collector.INDICATORS["peso_por_idade"].categories
+        for age_key in collector.AGE_RANGES:
+            query = collector.make_query(
+                "crianca", "peso_por_idade", age_key, 2025,
+            )
+            self.assertEqual(query.indicator.code, "1")
+            self.assertEqual(query.indicator.categories, expected)
+
+    def test_configuracao_padrao_usa_altura_e_peso_menores_5(self):
+        args = SimpleNamespace(
+            config=ROOT / "configuracoes/sisvan/coletas.json",
+            year=None, fases=None, indices=None, faixas_etarias=None,
+            todas_faixas=False, todas_idades_infantis=False,
+            populacao_geral=False, incluir_gestantes=False,
+        )
+        queries = collector.resolve_queries(args)
+        self.assertEqual(
+            {(item.indicator.key, item.age_range.key) for item in queries},
+            {
+                ("altura_por_idade", "0_a_menor_5_anos"),
+                ("peso_por_idade", "0_a_menor_5_anos"),
+            },
+        )
+
     def test_payload_recebe_indice_e_faixa(self):
         payload = helper.report_payload(2025, "11", "3", "5", "10")
         self.assertEqual(payload["nu_indice_cri"], "3")
@@ -317,6 +354,44 @@ class SisvanCollectorTests(unittest.TestCase):
         self.assertEqual(fact["denom_adulto_idoso"], 20)
         self.assertEqual(fact["denom_risco"], 10)
         self.assertEqual(fact["total"], 50)
+
+    def test_perfil_menores_5_mantem_denominadores_separados(self):
+        plans = [
+            ("altura_por_idade", [1, 2, 7]),
+            ("peso_por_idade", [2, 3, 13, 2]),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            products = []
+            for index, counts in plans:
+                query = collector.make_query("crianca", index, "0-5", 2025)
+                rows, schema = collector.parse_export(
+                    self.workbook(query.indicator, counts), "RO", query.indicator,
+                )
+                source = directory / (index + ".csv")
+                collector.write_csv(source, rows, schema.columns)
+                products.append({
+                    "query": query, "output": source, "schema": schema,
+                    "stats": collector.validate(rows, schema),
+                })
+            args = SimpleNamespace(output_dir=directory / "output")
+            output = collector.write_under5_growth_product(
+                args, products, [("RO", "11")],
+            )
+            with output.open(newline="", encoding="utf-8-sig") as handle:
+                row = next(csv.DictReader(handle))
+            metadata = json.loads(
+                output.with_suffix(".metadados.json").read_text(encoding="utf-8")
+            )
+        self.assertEqual(row["Déficit de estatura - Quantidade"], "3")
+        self.assertEqual(row["Déficit de estatura - %"], "30.0")
+        self.assertEqual(row["Total avaliado - Altura X Idade"], "10")
+        self.assertEqual(row["Déficit de peso para idade - Quantidade"], "5")
+        self.assertEqual(row["Déficit de peso para idade - %"], "25.0")
+        self.assertEqual(row["Total avaliado - Peso X Idade"], "20")
+        self.assertIn(
+            "nao podem ser somados", " ".join(metadata["limitacoes"]),
+        )
 
     def test_faixa_invalida_e_rejeitada(self):
         with self.assertRaises(ValueError):

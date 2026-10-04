@@ -70,8 +70,9 @@ areas-risco-alimentar-e-vuln-social/
 ├── dados/
 │   ├── brutos/
 │   │   ├── sisvan/
-│   │   │   ├── imc_por_idade/
-│   │   │   └── altura_por_idade/
+│   │   │   ├── altura_por_idade/
+│   │   │   ├── peso_por_idade/
+│   │   │   └── imc_por_idade/
 │   │   ├── ivs/
 │   │   ├── idhm/
 │   │   └── cadunico/
@@ -113,7 +114,7 @@ Essa é a estrutura de destino. A adoção deverá preservar arquivos e diretór
 
 O projeto coleta e preserva as seguintes famílias de dados:
 
-1. **Crianças:** IMC por idade e altura por idade;
+1. **Crianças:** altura por idade e peso por idade como recorte padrão; IMC por idade como opção preservada;
 2. **Adolescentes:** IMC por idade e altura por idade;
 3. **Adultos:** IMC;
 4. **Idosos:** IMC;
@@ -132,17 +133,16 @@ Exemplo conceitual de configuração:
 ```yaml
 sisvan:
   indices:
-    - nome: imc_por_idade
-      faixas_etarias:
-        - faixa_oficial_1
-        - faixa_oficial_2
     - nome: altura_por_idade
       faixas_etarias:
-        - faixa_oficial_1
-        - faixa_oficial_2
+        - 0_a_menor_5_anos
+    - nome: peso_por_idade
+      faixas_etarias:
+        - 0_a_menor_5_anos
 ```
 
-O exemplo não define os nomes finais das faixas. Esses valores deverão ser obtidos e validados a partir das opções oficiais do sistema.
+Essa é a configuração padrão implementada. Outras faixas oficiais continuam
+disponíveis para consultas adicionais.
 
 ### 4.3 Matriz de execução
 
@@ -180,12 +180,9 @@ As regras de cálculo, harmonização, prevenção de dupla contagem, preservaç
 
 ```text
 dados/brutos/sisvan/
-├── imc_por_idade/
-│   ├── sisvan_imc_por_idade_<faixa>_<ano>_<abrangencia>.<extensao>
-│   └── ...
 ├── altura_por_idade/
-    ├── sisvan_altura_por_idade_<faixa>_<ano>_<abrangencia>.<extensao>
-    └── ...
+├── peso_por_idade/
+├── imc_por_idade/                 # preservado e opcional
 ├── adolescente/<indice>/<faixa>/<ano>/ufs/<UF>.xlsx
 ├── adulto/imc/<faixa>/<ano>/ufs/<UF>.xlsx
 ├── idoso/imc/<faixa>/<ano>/ufs/<UF>.xlsx
@@ -260,8 +257,10 @@ separados por consulta, fase e finalidade:
 
 ```text
 dados/tratados/sisvan/
-├── imc_por_idade/                  # consultas infantis individuais
 ├── altura_por_idade/               # consultas infantis individuais
+├── peso_por_idade/                 # consultas infantis individuais
+├── imc_por_idade/                  # preservado e opcional
+├── criancas_menores_5/             # indicadores derivados de altura e peso
 ├── consultas/<fase>/<indice>/      # demais consultas individuais
 ├── faixas_somadas/<fase>/<indice>/ # soma solicitada pelo usuário
 ├── por_fase/                        # categorias oficiais na visão geral
@@ -310,9 +309,26 @@ Déficit de estatura (%) =
 
 A fórmula deverá ser aplicada somente na camada tratada. As categorias oficiais deverão permanecer separadas na camada bruta.
 
-### 8.2 IMC por idade: indicador complementar
+### 8.2 Peso por idade: indicador complementar padrão
 
-A coleta de IMC por idade será mantida. Uma medida complementar possível é:
+Para crianças de 0 a menos de 5 anos, o segundo indicador será:
+
+```text
+Déficit de peso para idade (%) =
+(peso muito baixo para idade + peso baixo para idade)
+÷ total avaliado em Peso X Idade
+× 100
+```
+
+`Peso muito baixo` e `Peso baixo` permanecerão separados na base tratada. O
+déficit de peso não será somado ao déficit de estatura, porque as mesmas crianças
+podem estar presentes nos dois índices e os relatórios agregados não permitem
+identificar essa interseção.
+
+### 8.3 IMC por idade: indicador opcional
+
+A coleta de IMC por idade será mantida como opção e para a visão geral por
+fases, mas não fará parte da configuração infantil padrão. Uma medida possível é:
 
 ```text
 Magreza total (%) =
@@ -323,7 +339,7 @@ Magreza total (%) =
 
 Também deverão ser preservadas as categorias relacionadas ao excesso de peso para permitir a análise da dupla carga da má nutrição.
 
-### 8.3 Denominadores
+### 8.4 Denominadores
 
 Nenhuma prevalência deverá ser analisada sem o número de pessoas avaliadas. Municípios com denominadores pequenos deverão ser identificados e submetidos a critérios de qualidade ou análises de sensibilidade.
 
@@ -359,7 +375,7 @@ Selecionar e somar faixas infantis sem sobreposição, uma saída por índice:
 
 ```bash
 python3 scripts/coletar_sisvan.py \
-  --indices imc_por_idade,altura_por_idade \
+  --indices altura_por_idade,peso_por_idade \
   --faixas-etarias 0-5,5-10 \
   --somar-faixas
 ```
@@ -453,16 +469,18 @@ O projeto deverá produzir, no mínimo:
 
 1. arquivos brutos independentes para cada consulta;
 2. manifesto completo das coletas;
-3. consolidado tratado de IMC por idade;
-4. consolidado tratado de altura por idade;
-5. relatório de cobertura e qualidade do SISVAN;
-6. bases tratadas de IVS, IDHM e CadÚnico;
-7. relatório de integração territorial e temporal;
-8. base analítica integrada;
-9. mapas e tabelas de vulnerabilidade social;
-10. mapas de déficit de estatura e de IMC por idade;
-11. produtos espaciais de sobreposição entre vulnerabilidade social e nutricional;
-12. documentação e dicionário das variáveis.
+3. consolidado tratado de altura por idade para menores de 5 anos;
+4. consolidado tratado de peso por idade para menores de 5 anos;
+5. produto infantil com os dois déficits e denominadores separados;
+6. consolidados opcionais de IMC por idade e da visão geral por fases;
+7. relatório de cobertura e qualidade do SISVAN;
+8. bases tratadas de IVS, IDHM e CadÚnico;
+9. relatório de integração territorial e temporal;
+10. base analítica integrada;
+11. mapas e tabelas de vulnerabilidade social;
+12. mapas de déficit de estatura e de peso para idade;
+13. produtos espaciais de sobreposição entre vulnerabilidade social e nutricional;
+14. documentação e dicionário das variáveis.
 
 ## 14. Decisões de implementação
 
@@ -475,26 +493,30 @@ O projeto deverá produzir, no mínimo:
 - [x] Reutilizar arquivos brutos e exigir `--force` para sobrescrita explícita.
 - [ ] Definir limite mínimo de avaliados para as análises municipais.
 - [ ] Definir a fonte do denominador utilizado no cálculo de cobertura.
-- [x] Validar os esquemas oficiais esperados para IMC por idade e altura por idade.
+- [x] Validar os esquemas oficiais de altura, peso e IMC por idade.
+- [x] Manter denominadores separados para altura por idade e peso por idade.
+- [x] Impedir a soma entre déficit de estatura e déficit de peso para idade.
 - [x] Definir testes automáticos de fidelidade e consistência.
 
 ## 15. Ordem recomendada de implementação
 
-1. inventariar e preservar a coleta atual de IMC por idade;
+1. inventariar e preservar a coleta anterior de IMC por idade;
 2. separar configuração, coleta, validação e transformação;
 3. implementar o manifesto das consultas;
 4. tornar as faixas etárias configuráveis;
 5. validar as faixas contra as opções oficiais do SISVAN;
-6. adicionar altura por idade como uma coleta independente;
+6. adicionar altura por idade e peso por idade como coletas independentes;
 7. gerar um arquivo bruto por combinação de parâmetros;
 8. implementar verificações automáticas de integridade e conteúdo;
-9. criar consolidados separados para os dois índices;
+9. criar consolidados separados para os índices e um produto infantil derivado;
 10. calcular indicadores derivados apenas na camada tratada;
 11. integrar as demais fontes somente após a aprovação das bases individuais.
 
 ## 16. Critério de aceite da arquitetura
 
-A implementação estará de acordo com esta arquitetura quando for possível selecionar mais de uma faixa etária para IMC por idade e altura por idade e, para cada consulta:
+A implementação estará de acordo com esta arquitetura quando altura por idade e
+peso por idade forem coletados por padrão em `0 a < 5 anos`, IMC permanecer
+disponível opcionalmente e, para cada consulta, for possível:
 
 - reproduzir os parâmetros utilizados;
 - localizar o arquivo bruto correspondente;
@@ -503,3 +525,7 @@ A implementação estará de acordo com esta arquitetura quando for possível se
 - identificar sua entrada no manifesto;
 - reconstruir o consolidado por meio de código;
 - rastrear cada valor analítico até a fonte original.
+
+O produto infantil deverá ainda manter os dois totais avaliados, calcular cada
+déficit com seu próprio denominador e proibir sua interpretação como categorias
+mutuamente exclusivas.

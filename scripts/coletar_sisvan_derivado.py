@@ -145,7 +145,8 @@ def start_portal(s, timeout, limiter):
         'value="3">ADULTO', 'value="4">IDOSO', 'value="5">GESTANTE',
         'name="nu_indice_cri"', 'name="nu_indice_ado"',
         'name="nu_idade_ges"',
-        'value="3">Altura X Idade', 'value="4">IMC X Idade',
+        'value="1">Peso X Idade', 'value="3">Altura X Idade',
+        'value="4">IMC X Idade',
     ]
     missing = [x for x in expected if x not in page]
     if missing:

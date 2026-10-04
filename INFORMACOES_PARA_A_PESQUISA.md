@@ -22,7 +22,7 @@ Por isso, é metodologicamente mais seguro tratar:
 
 Evitar afirmar que a vulnerabilidade social causou diretamente determinado resultado nutricional apenas com base em correlações ou sobreposição espacial.
 
-## 3. Insight central sobre o SISVAN: analisar altura por idade
+## 3. Insight central sobre o SISVAN: altura e peso por idade
 
 ### 3.1 Indicador principal recomendado
 
@@ -46,36 +46,57 @@ Déficit de estatura (%) =
 
 O déficit de estatura para a idade representa um comprometimento de crescimento de natureza geralmente crônica e acumulada. Por esse motivo, possui maior coerência conceitual com a análise conjunta de pobreza, privação social, IVS elevado e IDHM baixo.
 
-### 3.2 Não substituir nem descartar a base de IMC por idade
+### 3.2 Peso por idade como indicador complementar padrão
 
-A base de **IMC por idade** deve ser preservada e utilizada como análise complementar. Para menores de 5 anos, podem ser analisadas as categorias:
+Para o mesmo recorte de crianças de 0 a menos de 5 anos, coletar também
+**Peso por idade**. As categorias oficiais atuais são:
 
-- Magreza acentuada;
-- Magreza;
-- Eutrofia;
-- Risco de sobrepeso;
-- Sobrepeso;
-- Obesidade.
+- Peso Muito Baixo para a Idade;
+- Peso Baixo para a Idade;
+- Peso Adequado ou Eutrófico;
+- Peso Elevado para a Idade.
 
-Uma medida complementar de magreza pode ser calculada como:
+Calcular separadamente a prevalência de déficit de peso para idade:
 
 ```text
-Magreza total (%) =
-(crianças com magreza acentuada + crianças com magreza)
-÷ total de crianças avaliadas
+Déficit de peso para idade (%) =
+(crianças com peso muito baixo + crianças com peso baixo)
+÷ total avaliado em Peso X Idade
 × 100
 ```
 
-A altura por idade e o IMC por idade respondem a perguntas diferentes:
+O produto analítico deve preservar `Peso Muito Baixo` e `Peso Baixo` como
+componentes separados, além de apresentar a soma. `Peso Elevado para a Idade`
+deve permanecer com sua nomenclatura oficial e não ser interpretado
+automaticamente como sobrepeso ou obesidade.
 
-| Índice | Interpretação principal | Papel sugerido na pesquisa |
+### 3.3 Relação entre os dois índices
+
+| Índice | Interpretação principal | Papel na pesquisa |
 |---|---|---|
 | Altura por idade | Comprometimento crônico ou acumulado do crescimento | Desfecho nutricional principal |
-| IMC por idade | Estado nutricional atual, incluindo magreza e excesso de peso | Análise complementar e de sensibilidade |
-| Peso por altura | Magreza ou excesso de peso em relação à altura | Alternativa para avaliar déficit agudo |
-| Peso por idade | Resultado que pode refletir déficit de altura, de peso corporal ou ambos | Indicador complementar, não exclusivo |
+| Peso por idade | Déficit ponderal que pode refletir baixa estatura, baixo peso corporal ou ambos | Indicador complementar padrão |
 
-### 3.3 Por que “baixo peso” não deve ser o único indicador
+Regras obrigatórias:
+
+- utilizar a consulta direta de `0 a < 5 anos` para os dois índices;
+- manter um denominador para Altura X Idade e outro para Peso X Idade;
+- não somar déficit de estatura com déficit de peso;
+- não afirmar quantas crianças possuem simultaneamente os dois déficits, pois
+  os relatórios municipais agregados não identificam essa interseção;
+- preservar integralmente as categorias oficiais nas bases de origem.
+
+### 3.4 IMC por idade permanece disponível, mas fora da coleta padrão
+
+Os arquivos e o suporte de **IMC por idade** não serão apagados. O índice
+permanece disponível para análises de sensibilidade, magreza e excesso de peso,
+mas deixa de integrar a configuração padrão da análise principal.
+
+Para avaliar especificamente magreza aguda ou excesso de peso, IMC por idade
+ou peso por altura são mais apropriados do que interpretar `Peso Elevado para a
+Idade` como diagnóstico dessas condições.
+
+### 3.5 Por que “baixo peso” não deve ser o único indicador
 
 No SISVAN, **baixo peso para idade** pertence ao índice **Peso por idade**. Já **magreza** e **magreza acentuada** pertencem a índices como **IMC por idade** e **Peso por altura**.
 
@@ -84,7 +105,8 @@ Esses nomes não são sinônimos e não devem ser trocados na base bruta. O peso
 Assim, para a pergunta desta pesquisa:
 
 - usar **déficit de estatura para idade** como resultado principal de privação nutricional crônica;
-- usar **magreza por IMC para idade** como resultado complementar;
+- usar **déficit de peso para idade** como resultado complementar padrão;
+- reservar **magreza por IMC para idade** para análise opcional ou de sensibilidade;
 - não usar **baixo peso para idade** como único marcador de risco alimentar.
 
 ## 4. Preservação integral das bases originais
@@ -177,8 +199,10 @@ Indicador principal:
 
 Indicadores complementares:
 
-- prevalência de magreza e magreza acentuada por IMC para idade;
-- prevalência de risco de sobrepeso, sobrepeso e obesidade;
+- prevalência de peso muito baixo e peso baixo para idade;
+- prevalência combinada de déficit de peso para idade;
+- prevalência de magreza, risco de sobrepeso, sobrepeso e obesidade por IMC
+  para idade, somente em análise opcional ou de sensibilidade;
 - peso por altura, se a análise de déficit nutricional agudo for relevante;
 - indicadores de consumo alimentar, caso estejam disponíveis e sejam compatíveis com o recorte.
 

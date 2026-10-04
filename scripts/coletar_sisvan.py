@@ -80,7 +80,29 @@ PREGNANT_COLUMNS = (
     "Obesidade - Quantidade", "Obesidade - %",
     "Excesso de peso - Quantidade", "Excesso de peso - %", "Total",
 )
-COLLECTOR_VERSION = "4.0"
+UNDER5_COLUMNS = (
+    "Fase da vida", "Faixa etária", "Ano", *BASE_COLUMNS,
+    "Altura Muito Baixa para a Idade - Quantidade",
+    "Altura Muito Baixa para a Idade - %",
+    "Altura Baixa para a Idade - Quantidade",
+    "Altura Baixa para a Idade - %",
+    "Altura Adequada para a Idade - Quantidade",
+    "Altura Adequada para a Idade - %",
+    "Déficit de estatura - Quantidade", "Déficit de estatura - %",
+    "Total avaliado - Altura X Idade",
+    "Peso Muito Baixo para a Idade - Quantidade",
+    "Peso Muito Baixo para a Idade - %",
+    "Peso Baixo para a Idade - Quantidade",
+    "Peso Baixo para a Idade - %",
+    "Peso Adequado ou Eutrófico - Quantidade",
+    "Peso Adequado ou Eutrófico - %",
+    "Peso Elevado para a Idade - Quantidade",
+    "Peso Elevado para a Idade - %",
+    "Déficit de peso para idade - Quantidade",
+    "Déficit de peso para idade - %",
+    "Total avaliado - Peso X Idade",
+)
+COLLECTOR_VERSION = "4.1"
 
 
 @dataclass(frozen=True)
@@ -161,6 +183,18 @@ INDICATORS = {
             "Altura Adequada para a Idade",
         ),
     ),
+    "peso_por_idade": Indicator(
+        key="peso_por_idade",
+        code="1",
+        code_field="nu_indice_cri",
+        official_title="PESO X IDADE",
+        categories=(
+            "Peso Muito Baixo para a Idade",
+            "Peso Baixo para a Idade",
+            "Peso Adequado ou Eutrófico",
+            "Peso Elevado para a Idade",
+        ),
+    ),
 }
 
 INDICATOR_VARIANTS = {
@@ -174,6 +208,7 @@ INDICATOR_VARIANTS = {
         ),
     ),
     ("crianca", "altura_por_idade", "todos"): INDICATORS["altura_por_idade"],
+    ("crianca", "peso_por_idade", "todos"): INDICATORS["peso_por_idade"],
     ("adolescente", "imc_por_idade", "todos"): Indicator(
         "imc_por_idade", "2", "nu_indice_ado", "IMC X IDADE",
         (
@@ -208,7 +243,7 @@ INDICATOR_VARIANTS = {
 }
 
 PHASE_INDICES = {
-    "crianca": ("imc_por_idade", "altura_por_idade"),
+    "crianca": ("altura_por_idade", "peso_por_idade", "imc_por_idade"),
     "adolescente": ("imc_por_idade", "altura_por_idade"),
     "adulto": ("imc",),
     "idoso": ("imc",),
@@ -1492,6 +1527,144 @@ def write_pregnant_product(args, product_item, states):
     return output
 
 
+def write_under5_growth_product(args, products, states):
+    """Combina Altura/Idade e Peso/Idade sem misturar seus denominadores."""
+    selected = {}
+    for item in products:
+        query = item["query"]
+        if (
+            query.phase.key == "crianca"
+            and query.age_range.key == "0_a_menor_5_anos"
+            and query.indicator.key in {"altura_por_idade", "peso_por_idade"}
+        ):
+            if query.indicator.key in selected:
+                raise RuntimeError(
+                    "consulta duplicada no perfil de menores de 5 anos: "
+                    + query.indicator.key
+                )
+            selected[query.indicator.key] = item
+    required = {"altura_por_idade", "peso_por_idade"}
+    if set(selected) != required:
+        return None
+    ordered = [selected["altura_por_idade"], selected["peso_por_idade"]]
+    loaded, identities = compatible_product_rows(ordered)
+    rows_by_index = {
+        item["query"].indicator.key: {
+            row["Código IBGE"]: row for row in rows
+        }
+        for item, rows in loaded
+    }
+    height_rows = rows_by_index["altura_por_idade"]
+    weight_rows = rows_by_index["peso_por_idade"]
+    year = ordered[0]["query"].year
+    if ordered[1]["query"].year != year:
+        raise RuntimeError("perfil infantil exige o mesmo ano nos dois indices")
+    output_rows = []
+    for code in sorted(identities, key=int):
+        height = height_rows[code]
+        weight = weight_rows[code]
+        height_total = int(height["Total"])
+        weight_total = int(weight["Total"])
+        very_low_height = int(
+            height["Altura Muito Baixa para a Idade - Quantidade"]
+        )
+        low_height = int(height["Altura Baixa para a Idade - Quantidade"])
+        height_deficit = very_low_height + low_height
+        very_low_weight = int(
+            weight["Peso Muito Baixo para a Idade - Quantidade"]
+        )
+        low_weight = int(weight["Peso Baixo para a Idade - Quantidade"])
+        weight_deficit = very_low_weight + low_weight
+        if height_deficit > height_total or weight_deficit > weight_total:
+            raise RuntimeError("deficit infantil superior ao total em " + code)
+        output_rows.append({
+            "Fase da vida": "CRIANÇA",
+            "Faixa etária": "0 a < 5 anos",
+            "Ano": year,
+            **dict(zip(BASE_COLUMNS, identities[code])),
+            "Altura Muito Baixa para a Idade - Quantidade": very_low_height,
+            "Altura Muito Baixa para a Idade - %": height[
+                "Altura Muito Baixa para a Idade - %"
+            ],
+            "Altura Baixa para a Idade - Quantidade": low_height,
+            "Altura Baixa para a Idade - %": height[
+                "Altura Baixa para a Idade - %"
+            ],
+            "Altura Adequada para a Idade - Quantidade": int(
+                height["Altura Adequada para a Idade - Quantidade"]
+            ),
+            "Altura Adequada para a Idade - %": height[
+                "Altura Adequada para a Idade - %"
+            ],
+            "Déficit de estatura - Quantidade": height_deficit,
+            "Déficit de estatura - %": derived_percent(
+                height_deficit, height_total,
+            ),
+            "Total avaliado - Altura X Idade": height_total,
+            "Peso Muito Baixo para a Idade - Quantidade": very_low_weight,
+            "Peso Muito Baixo para a Idade - %": weight[
+                "Peso Muito Baixo para a Idade - %"
+            ],
+            "Peso Baixo para a Idade - Quantidade": low_weight,
+            "Peso Baixo para a Idade - %": weight[
+                "Peso Baixo para a Idade - %"
+            ],
+            "Peso Adequado ou Eutrófico - Quantidade": int(
+                weight["Peso Adequado ou Eutrófico - Quantidade"]
+            ),
+            "Peso Adequado ou Eutrófico - %": weight[
+                "Peso Adequado ou Eutrófico - %"
+            ],
+            "Peso Elevado para a Idade - Quantidade": int(
+                weight["Peso Elevado para a Idade - Quantidade"]
+            ),
+            "Peso Elevado para a Idade - %": weight[
+                "Peso Elevado para a Idade - %"
+            ],
+            "Déficit de peso para idade - Quantidade": weight_deficit,
+            "Déficit de peso para idade - %": derived_percent(
+                weight_deficit, weight_total,
+            ),
+            "Total avaliado - Peso X Idade": weight_total,
+        })
+    name = "indicadores_altura_peso_idade_menores_5_%s%s.csv" % (
+        year, partial_suffix(states),
+    )
+    output = args.output_dir / "criancas_menores_5" / name
+    write_csv(output, output_rows, UNDER5_COLUMNS)
+    write_json(metadata_path(output), {
+        "fonte": helper.PORTAL,
+        "arquivo": portable_path(output),
+        "tipo": "produto derivado infantil com dois indices independentes",
+        "fase": "crianca",
+        "faixa_etaria": "0_a_menor_5_anos",
+        "ano": year,
+        "formulas": {
+            "deficit_estatura": (
+                "Altura Muito Baixa para a Idade + "
+                "Altura Baixa para a Idade"
+            ),
+            "deficit_peso_idade": (
+                "Peso Muito Baixo para a Idade + "
+                "Peso Baixo para a Idade"
+            ),
+        },
+        "denominadores": {
+            "deficit_estatura": "Total avaliado - Altura X Idade",
+            "deficit_peso_idade": "Total avaliado - Peso X Idade",
+        },
+        "fontes": product_sources(ordered),
+        "linhas": len(output_rows),
+        "gerado_em": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "limitacoes": [
+            "Os dois deficits nao podem ser somados entre si.",
+            "Os relatorios agregados nao identificam a intersecao de criancas entre os indices.",
+            "Peso elevado para a idade nao equivale a diagnostico de sobrepeso ou obesidade.",
+        ],
+    })
+    return output
+
+
 def print_options():
     print("Fases e indices disponíveis:")
     for phase_key, phase in PHASES.items():
@@ -1528,7 +1701,10 @@ def build_parser():
     )
     parser.add_argument(
         "--indices",
-        help="Lista separada por virgulas: imc_por_idade,altura_por_idade",
+        help=(
+            "Lista separada por virgulas: altura_por_idade,peso_por_idade,"
+            "imc_por_idade"
+        ),
     )
     parser.add_argument(
         "--faixas-etarias",
@@ -1670,6 +1846,10 @@ def main():
         print("\nCSV unico:", combined)
         print("Linhas no formato longo:", combined_rows)
     derived = []
+    under5 = write_under5_growth_product(args, products, states)
+    if under5:
+        derived.append(under5)
+        print("Indicadores de menores de 5 anos:", under5)
     if args.somar_faixas or args.populacao_geral:
         grouped = {}
         for item in products:
