@@ -13,7 +13,7 @@ Arquivo: [01_sobreposicao_criterios.ipynb](01_sobreposicao_criterios.ipynb).
    ativar `BAIXAR_RESULTADOS_NO_COLAB` na célula de parâmetros e executar novamente.
 
 O notebook é autocontido: incorpora cópias byte a byte das quatro bases de
-[`dados/pesquisa/`](../dados/pesquisa/), hashes, documentação e malha de apoio.
+[`dados/pesquisa/`](../dados/pesquisa/), hashes, catálogo das fontes e malha de apoio.
 Não exige acesso ao repositório, Google Drive, SISVAN ou credenciais. A
 instalação inicial de bibliotecas pode precisar de internet. Os arquivos das
 fontes são restaurados na sessão e o processamento gera resultados separados.
@@ -21,7 +21,8 @@ fontes são restaurados na sessão e o processamento gera resultados separados.
 ## Regra inicial
 
 - IVS igual ou superior ao percentil 75 dos municípios com valor disponível.
-- CadInsan proporcional `com_PBF` igual ou superior ao percentil 75, com
+- CadInsan proporcional `com_PBF` recalculado sem arredondamento,
+  igual ou superior ao percentil 75, com
   denominador informado positivo.
 - DAI igual ou superior ao percentil 75 dos municípios com pelo menos
   **100 avaliações de altura**.
@@ -31,10 +32,15 @@ Esses cortes são exploratórios, não classificações oficiais. Cada municípi
 tem o mesmo peso no cálculo dos quantis. Os universos de referência dos
 indicadores são distintos e aparecem na tabela de cortes.
 
-DAI/DPI são recalculados sem arredondamento na base analítica. Denominador zero
+DAI/DPI e CadInsan são recalculados sem arredondamento na base analítica. Denominador zero
 produz ausência analítica (`NaN`), mantendo os valores do CSV em colunas próprias.
-IDHM e DPI são indicadores contextuais; CadÚnico JSON permanece fora da regra
-enquanto sua unidade e período não forem confirmados.
+IDHM, DPI e CadÚnico são indicadores contextuais. O JSON representa pessoas
+cadastradas em junho/2026; a regra principal permanece IVS + CadInsan + DAI.
+
+O notebook valida os hashes do catálogo contra as três bases sociais, conserva
+os percentuais originais em colunas `*_arquivo` e exporta a comparação entre
+seleções com percentuais arredondados e recalculados. Com os parâmetros padrão,
+são **274 municípios selecionados**; usar as proporções do CSV resultaria em 275.
 
 ## Produtos
 
@@ -49,20 +55,27 @@ enquanto sua unidade e período não forem confirmados.
   `com_PBF`/`sem_PBF`, incluindo frequência de seleção e Jaccard.
 - CSVs, figuras PNG/SVG, síntese Markdown e manifesto com parâmetros, hashes e
   versões do ambiente, reunidos em um ZIP por execução.
+- Validação do catálogo e auditoria do efeito do arredondamento, com os
+  municípios que mudaram de seleção e os cortes de comparação.
 
 Os resultados ficam em `resultados_sobreposicao/resultados/execucao_<data>/`,
 relativo à pasta da sessão. Cada exportação tem um diretório próprio.
 
 ## Limitações visíveis na execução
 
-IVS/IDHM são de 2010; o SISVAN e o arquivo CadInsan selecionado são de 2025.
-O período efetivo e os cenários do arquivo CadInsan precisam de conferência
-metodológica. Seu risco estimado não representa medição direta em todas as
-famílias residentes. Não interpretar `com_PBF` e `sem_PBF` automaticamente como
-grupos de beneficiários e não beneficiários.
+IVS/IDHM são de 2010; SISVAN cobre 2025; CadInsan tem referência janeiro/2025;
+o JSON CadÚnico contém pessoas cadastradas em junho/2026. O catálogo documenta
+as três bases sociais, com hashes correspondentes. O relatório oficial
+complementa o período mensal e os cenários do CadInsan.
 
-O JSON CadÚnico não informa unidade e período, nem equivale automaticamente à
-coluna `Cadastros_Cadunico` do CadInsan. Esses valores continuam separados.
+CadInsan estima risco entre famílias do universo analisado. `com_PBF` considera
+o efeito do Bolsa Família na renda e `sem_PBF` é um cenário contrafactual sem
+esse efeito. Seu risco estimado não é medição direta em todas as famílias
+residentes. Os cenários não são grupos de beneficiários e não beneficiários.
+
+O JSON CadÚnico representa pessoas, enquanto `Cadastros_Cadunico` do CadInsan
+representa famílias. Esses valores e períodos continuam separados; não há
+conversão entre pessoas e famílias nem cálculo de cobertura populacional.
 
 O SISVAN descreve a população acompanhada; o mínimo de avaliações não demonstra
 representatividade. Não se calcula cobertura populacional sem denominador

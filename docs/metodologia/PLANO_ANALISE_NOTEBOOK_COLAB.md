@@ -7,8 +7,10 @@
 Este documento preserva o planejamento discutido. A implementação usa
 percentil 75, cenário `com_PBF` e mínimo de 100 avaliações de altura como
 parâmetros iniciais editáveis, com análise de sensibilidade. Essas escolhas
-são exploratórias e precisam de justificativa metodológica; as pendências de
-definição e período das fontes continuam válidas.
+são exploratórias e precisam de justificativa metodológica. Unidades e períodos
+das fontes sociais foram documentados com o catálogo e o relatório oficial.
+Os percentuais do CadInsan são recalculados sem arredondamento, preservando os
+valores do CSV e auditando a diferença na seleção.
 
 ## 1. Pergunta da pesquisa
 
@@ -34,7 +36,7 @@ O notebook deverá responder a três perguntas:
 |---|---|---|
 | IVS | Vulnerabilidade social | IVS total; dimensões para aprofundamento |
 | IDHM | Desenvolvimento humano | IDHM total; valores menores indicam situação mais desfavorável |
-| CadÚnico | Dimensão da população cadastrada e demanda potencial | Contagem municipal, após confirmar unidade e período |
+| CadÚnico | Dimensão da população cadastrada e demanda potencial | Pessoas cadastradas por município, junho/2026 |
 | CadInsan | Risco estimado de insegurança alimentar grave | Proporção para comparar intensidade; quantidade para dimensionar demanda |
 | SISVAN | Situação nutricional infantil registrada | DAI como resultado principal; DPI como complementar; respectivos denominadores |
 
@@ -62,8 +64,8 @@ A identificação, procedência, cobertura e integridade das cópias estão no
 | Arquivo | Conteúdo | Registros municipais |
 |---|---|---:|
 | `ivs_idhm/atlasivs_municipios_2010.csv` | IVS e IDHM | 5.565 |
-| `cadunico/municipios-cadunico.json` | Valores municipais associados ao CadÚnico, com unidade e período pendentes de confirmação | 5.564 |
-| `cadinsan/CADINSAN_2025_dados_municipais.csv` | Indicadores CadInsan e coluna `Cadastros_Cadunico` | 5.570 |
+| `cadunico/municipios-cadunico.json` | Pessoas cadastradas, junho/2026, conforme catálogo | 5.564 |
+| `cadinsan/CADINSAN_2025_dados_municipais.csv` | Famílias em risco estimado e denominador em famílias, janeiro/2025 | 5.570 |
 | `sisvan/indicadores_altura_peso_idade_menores_5_2025.csv` | Altura por idade, peso por idade, DAI e DPI | 5.571 |
 
 Os caminhos da tabela são relativos a `dados/pesquisa/`. Os arquivos de entrada
@@ -75,8 +77,8 @@ gerar uma base analítica separada.
 ### 4.1 Pergunta, recorte e decisões metodológicas
 
 Explicar a unidade municipal, o recorte infantil e o papel de cada indicador.
-Registrar que IVS/IDHM são de 2010, enquanto SISVAN e o arquivo CadInsan
-selecionado são de 2025. Essa diferença temporal precisa aparecer na
+Registrar IVS/IDHM de 2010, SISVAN de 2025, CadInsan de janeiro/2025 e CadÚnico
+de junho/2026. Essas diferenças temporais precisam aparecer na
 interpretação dos resultados.
 
 ### 4.2 Carregamento e conferência das bases
@@ -196,26 +198,30 @@ ser compatível com os códigos e períodos utilizados. Referência:
 
 ### 6.1 CadÚnico
 
-O JSON disponível não informa unidade nem período. Não interpretar seus valores
-como pessoas ou famílias sem confirmação. Para calcular proporções, será
-necessário um denominador compatível.
+O catálogo documenta o JSON como **pessoas cadastradas em junho/2026**,
+campo `cadun_qtd_pessoas_cadastradas_i`, `anomes:202606`. O hash corresponde
+exatamente ao arquivo usado. Para calcular proporções, ainda será necessário
+um denominador compatível.
 
-Também não substituir automaticamente esses valores pela coluna
-`Cadastros_Cadunico` do CADINSAN sem demonstrar equivalência de unidade e período.
+Esses valores não substituem `Cadastros_Cadunico` do CADINSAN, cujo denominador
+é de **famílias** no universo analisado, com referência em janeiro/2025.
 
 ### 6.2 CadInsan
 
-Confirmar a documentação das colunas `com_PBF` e `sem_PBF`. A metodologia
-oficial trabalha com cenários de renda considerando ou desconsiderando
-benefícios; isso não equivale automaticamente a dividir famílias beneficiárias
-e não beneficiárias.
+As definições do catálogo e do relatório oficial documentam os cenários:
+`com_PBF` considera o efeito do benefício na renda; `sem_PBF` desconsidera esse
+efeito em um cenário contrafactual. Não são grupos separados de famílias
+beneficiárias e não beneficiárias. A fonte estima risco de insegurança
+alimentar grave, sem medir diretamente todos os domicílios municipais.
 
 Referência:
-[relatório metodológico do CadInsan](https://www.gov.br/mds/pt-br/caisan/monitoramento-da-san/Relatorio_CadINSAN.pdf).
+[relatório CadInsan com referência janeiro/2025](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf).
 
-Definir qual cenário será usado na análise principal e como o outro será
-apresentado, após confirmar a correspondência dessas definições com o arquivo
-local.
+O cenário `com_PBF` integra a análise principal; `sem_PBF` entra na sensibilidade.
+Os percentuais são recalculados sem arredondamento a partir dos absolutos e do
+denominador em famílias, conforme o procedimento descrito no catálogo do
+repositório de origem. Os valores proporcionais do CSV ficam preservados em
+colunas próprias, com auditoria dos cortes e municípios que mudam de seleção.
 
 ### 6.3 SISVAN
 
@@ -234,8 +240,9 @@ O dicionário, fórmulas, filtros e limitações estão no
 
 ### 6.4 Tempo, território e dados adicionais
 
-- Justificar a comparação entre o contexto social de 2010 e os indicadores
-  de 2025; não apresentá-los como observações simultâneas.
+- Justificar a comparação entre o contexto social de 2010, CadInsan de
+  janeiro/2025, SISVAN de 2025 e CadÚnico de junho/2026; não apresentá-los como
+  observações simultâneas.
 - Documentar correspondências territoriais e municípios sem dados por fonte.
 - Acrescentar arquivos geográficos para os mapas.
 - Para medir cobertura do SISVAN, obter um denominador populacional da mesma

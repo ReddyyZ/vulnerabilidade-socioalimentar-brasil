@@ -58,6 +58,7 @@ def payload():
     root = ROOT / "dados/pesquisa"
     files = {str(p.relative_to(root)): p for p in root.rglob("*") if p.is_file()}
     files["documentacao/fonte_dados.json"] = ROOT / "fonte_dados.json"
+    files["documentacao/dataset_catalogue.json"] = ROOT / "dataset_catalogue.json"
     files["documentacao/README_SISVAN.md"] = ROOT / "dados/tratados/sisvan/criancas_menores_5/README.md"
     files["documentacao/SISVAN.metadados.json"] = ROOT / "dados/tratados/sisvan/criancas_menores_5/indicadores_altura_peso_idade_menores_5_2025.metadados.json"
     for path in SUPPORT.glob("*"):
@@ -99,9 +100,10 @@ def build():
     Pergunta: onde coincidem IVS elevado, risco alimentar estimado elevado no
     CadInsan e déficit de altura/estatura para idade (DAI) elevado no SISVAN?
 
-    IVS/IDHM: **2010**. Arquivo CadInsan e SISVAN: **2025**. SISVAN: crianças de
-    **0 a menos de 5 anos acompanhadas pelo sistema**. CadÚnico JSON: período e
-    unidade ainda não confirmados. A análise é exploratória e não estabelece
+    IVS/IDHM: **2010**. CadInsan: **famílias, janeiro de 2025**.
+    CadÚnico JSON: **pessoas, junho de 2026**. SISVAN: crianças de
+    **0 a menos de 5 anos acompanhadas pelo sistema durante 2025**.
+    O catálogo corresponde por hash às três bases sociais. A análise é exploratória e não estabelece
     causalidade nem estima a prevalência de fome na população inteira.
 
     **Como executar:** no Colab, abrir este `.ipynb` pelo menu **Arquivo → Abrir
@@ -127,11 +129,18 @@ def build():
     Cada município tem o mesmo peso nos quantis; empates no corte são incluídos.
     Por isso o grupo elevado pode conter mais de 25% dos municípios.
 
-    `com_PBF` é a coluna escolhida para o cenário inicial. `sem_PBF` entra na
-    sensibilidade. **A documentação específica do arquivo local precisa ser
-    confirmada**: os nomes não permitem interpretar os cenários como grupos
-    de beneficiários e não beneficiários. Resultados são provisórios enquanto
-    essa correspondência e a referência temporal do arquivo não forem validadas.
+    `com_PBF` é o cenário inicial, considerando o efeito do benefício na renda.
+    `sem_PBF` é o cenário contrafactual que desconsidera esse efeito e entra na
+    sensibilidade. Não são dois grupos de beneficiários e não beneficiários.
+    O catálogo e o relatório do MDS documentam unidades e cenários; o relatório
+    indica janeiro/2025 e famílias com cadastro atualizado nos últimos 12 meses.
+    O denominador é o universo de famílias considerado no arquivo CadInsan.
+    O JSON de pessoas em junho/2026 não substitui esse denominador.
+
+    Os percentuais CadInsan são **recalculados sem arredondamento** pelos
+    valores absolutos e denominadores do CSV. As proporções originais ficam
+    preservadas em `*_arquivo`. Essa escolha evita empates artificiais por
+    arredondamento e reproduz o procedimento descrito no catálogo.
     """)
     code("""
     QUANTIL = 0.75
@@ -143,10 +152,6 @@ def build():
     GERAR_MAPAS = True
     BAIXAR_RESULTADOS_NO_COLAB = False  # True solicita download do ZIP no final
 
-    # Somente preencha depois de conferir a documentação das fontes locais.
-    DEFINICOES_CADINSAN_CONFIRMADAS = False
-    CADUNICO_UNIDADE_CONFIRMADA = ""
-    CADUNICO_PERIODO_CONFIRMADO = ""
     """)
     md("""
     ## 2. Ambiente e recuperação das bases incorporadas
@@ -216,10 +221,13 @@ def build():
     code('# @title Funções de análise — executar sem editar\n' +
          (ROOT / "scripts/analise_sobreposicao.py").read_text(encoding="utf-8"), hidden=True)
     code("""
+    validacao_catalogo, proveniencia_catalogo = validate_catalogue(
+        PASTA_DADOS / "documentacao/dataset_catalogue.json", PASTA_DADOS)
     base, controle_integracao, hashes_entrada = prepare_base(PASTA_DADOS)
     figure_style()
     print("Municípios na união:", len(base))
     display(hashes_entrada)
+    display(validacao_catalogo)
     display(controle_integracao)
     ausencias = base.loc[~base[["tem_ivs_idhm", "tem_cadunico", "tem_cadinsan", "tem_sisvan"]].all(axis=1),
                          ["codigo_ibge_6", "codigo_ibge_7", "municipio", "uf",
@@ -232,17 +240,21 @@ def build():
     Código SISVAN tem seis dígitos; as fontes sociais têm sete. Prefixos e códigos
     são conferidos quanto à unicidade e a conflitos. A malha será auditada mais
     adiante. Isso não demonstra que limites territoriais de 2010 e 2025 sejam
-    idênticos. CadÚnico JSON e `Cadastros_Cadunico` continuam separados; unidade e
-    período não são presumidos, nem são usados para calcular cobertura.
+    idênticos. CadÚnico JSON (pessoas, junho/2026) e `Cadastros_Cadunico`
+    (famílias, janeiro/2025) ficam separados. Sem denominador populacional
+    compatível, a contagem de pessoas não se transforma em proporção de cobertura.
     """)
     md(r"""
-    ## 4. DAI e DPI: fórmulas e qualidade
+    ## 4. Indicadores recalculados e qualidade
 
     $$DAI(\%)=100\times\frac{N(\text{altura muito baixa})+N(\text{altura baixa})}
     {N(\text{avaliados em altura por idade})}$$
 
     $$DPI(\%)=100\times\frac{N(\text{peso muito baixo})+N(\text{peso baixo})}
     {N(\text{avaliados em peso por idade})}$$
+
+    $$CadInsan_{cenario}(\%)=100\times
+    \frac{Cadinsan\_absoluto\_{cenario}}{Cadastros\_Cadunico}$$
 
     Os indicadores são recalculados **sem arredondamento** para comparação e
     classificação. Os valores arredondados do CSV ficam preservados nas colunas
@@ -293,10 +305,15 @@ def build():
     sem_classificacao = classificados.loc[~classificados["elegivel_principal"],
         ["codigo_ibge_6", "municipio", "uf", "avaliados_altura", "motivo_nao_classificacao"]]
     display(sem_classificacao)
-    if not DEFINICOES_CADINSAN_CONFIRMADAS:
-        display(Markdown("**Resultados provisórios:** confirmar cenário, unidade e período do arquivo CadInsan."))
-    if not CADUNICO_UNIDADE_CONFIRMADA or not CADUNICO_PERIODO_CONFIRMADO:
-        display(Markdown("**CadÚnico JSON:** unidade/período pendentes; valores preservados para auditoria, fora da regra."))
+    comparacao_arredondamento, cortes_percentuais_csv = compare_rounding(
+        base, classificados, QUANTIL, MINIMO_AVALIADOS, CENARIO_CADINSAN)
+    total_com_csv = int(comparacao_arredondamento["selecionado_percentual_csv"].fillna(False).sum())
+    total_recalculado = int(classificados["prioritario"].fillna(False).sum())
+    display(Markdown(f"**Efeito do arredondamento:** {total_com_csv} municípios com percentuais do CSV; "
+                     f"{total_recalculado} com as razões sem arredondamento usadas na análise."))
+    display(comparacao_arredondamento.loc[comparacao_arredondamento["mudou_selecao"]])
+    display(Markdown("**CadÚnico:** pessoas de junho/2026 são informação contextual; "
+                     "a regra principal permanece IVS + CadInsan + DAI, conforme o plano."))
     """)
     md("""
     ## 6. Distribuições, associações e redundância
@@ -377,7 +394,7 @@ def build():
     code("""
     colunas_apresentacao = ["codigo_ibge_6", "codigo_ibge_7", "municipio", "uf", "ivs", "idhm",
                            "cadinsan_pct", "cadinsan_n", "dai_pct", "avaliados_altura",
-                           "dpi_pct", "avaliados_peso", "cadunico_valor_original", "cadastros_cadunico_cadinsan",
+                           "dpi_pct", "avaliados_peso", "cadunico_pessoas_2026_06", "cadastros_cadunico_cadinsan",
                            "criterio_idhm", "criterio_dpi"]
     prioritarios = classificados.loc[classificados["prioritario"].fillna(False)].sort_values(["uf", "municipio"])
     print("Municípios com convergência:", len(prioritarios))
@@ -415,7 +432,8 @@ def build():
     ## 10. Síntese para o laboratório e limitações
 
     A síntese abaixo é preenchida com os resultados da execução. Antes de usar
-    como conclusão definitiva, conferir as pendências metodológicas das fontes.
+    como conclusão definitiva, discutir os cortes exploratórios e a
+    compatibilidade temporal e territorial das fontes.
     """)
     code(r'''
     elegiveis = int(classificados["elegivel_principal"].sum())
@@ -428,11 +446,16 @@ def build():
     A seleção variou de {tabela_sensibilidade.prioritarios.min()} a \
     {tabela_sensibilidade.prioritarios.max()} municípios nas especificações testadas. \
     Consultar a tabela de sensibilidade para distinguir cenários, cortes e denominadores.\n\n\
-    **Limitações:** IVS/IDHM de 2010; SISVAN e arquivo CadInsan de 2025; SISVAN representa \
+    **Referências:** IVS/IDHM de 2010; CadInsan: famílias de janeiro/2025; \
+    CadÚnico JSON: pessoas de junho/2026; SISVAN: acompanhamento de menores de cinco anos em 2025.\n\n\
+    **Limitações:** diferenças temporais e territoriais; SISVAN representa \
     a população acompanhada; nenhum indicador de cobertura populacional foi calculado; \
-    CadÚnico JSON tem unidade/período pendentes; definições específicas do arquivo CadInsan \
-    precisam de confirmação; malha ilustrativa sem ano identificado pela API; associação \
-    municipal não demonstra causalidade nem relações individuais.\n"""
+    pessoas do JSON e famílias do CadInsan não são unidades intercambiáveis; \
+    malha ilustrativa sem ano identificado pela API; associação \
+    municipal não demonstra causalidade nem relações individuais.\n\n\
+    **Processamento:** percentuais CadInsan recalculados sem arredondamento; \
+    percentuais originais preservados. Com os percentuais do CSV, esta configuração selecionaria \
+    {total_com_csv} municípios. O catálogo incorporado corresponde às três bases sociais por hash.\n"""
     display(Markdown(resumo_execucao))
     ''')
     md("""
@@ -458,6 +481,9 @@ def build():
                "qualidade_sisvan": qualidade_sisvan, "controle_geometria": controle_geometria,
                "resumo_regional": resumo_regional, "sensibilidade": tabela_sensibilidade,
                "estabilidade": estabilidade, "dicionario_variaveis": dictionary(),
+               "validacao_catalogo": validacao_catalogo,
+               "comparacao_arredondamento": comparacao_arredondamento,
+               "cortes_percentuais_csv": cortes_percentuais_csv,
                "correlacoes_spearman": correlacoes.rename_axis("indicador").reset_index(),
                "n_pares_correlacao": n_pares.rename_axis("indicador").reset_index()}
     for nome, tabela in tabelas.items():
@@ -474,16 +500,17 @@ def build():
     manifesto = {"executado_em": datetime.now(timezone.utc).isoformat(),
                  "versao_bases": "3391236", "quantil": QUANTIL, "minimo_avaliados": MINIMO_AVALIADOS,
                  "cenario_cadinsan": CENARIO_CADINSAN, "cortes": cortes.to_dict("records"),
-                 "definicoes_cadinsan_confirmadas": DEFINICOES_CADINSAN_CONFIRMADAS,
-                 "cadunico_unidade_confirmada": CADUNICO_UNIDADE_CONFIRMADA,
-                 "cadunico_periodo_confirmado": CADUNICO_PERIODO_CONFIRMADO,
+                 "proveniencia_catalogo": proveniencia_catalogo,
+                 "formula_cadinsan_pct": "100 * Cadinsan_absoluto_cenario / Cadastros_Cadunico; sem arredondamento",
+                 "municipios_selecionados_com_percentuais_csv": total_com_csv,
+                 "municipios_selecionados_sem_arredondamento": total_recalculado,
                  "sensibilidade": tabela_sensibilidade.to_dict("records"), "ambiente": ambiente,
                  "hashes_entrada": hashes_entrada.to_dict("records"), "malha": metadados_malha,
                  "codigo_analise_sha256": CODIGO_ANALISE_SHA256,
                  "regra": "IVS >= corte e CadInsan >= corte e DAI >= corte; denominadores válidos",
                  "limites": ["Estudo ecológico exploratório", "Sem inferência causal",
                              "Sem cobertura populacional calculada", "Referências temporais distintas",
-                             "Cenários CadInsan e unidade/período CadÚnico precisam de confirmação"]}
+                             "Pessoas CadÚnico de junho/2026 e famílias CadInsan de janeiro/2025 não são intercambiáveis"]}
     (destino / "manifesto_execucao.json").write_text(json.dumps(manifesto, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
     (destino / "resumo.md").write_text(resumo_execucao, encoding="utf-8")
     shutil.copytree(PASTA_DADOS / "documentacao", destino / "documentacao_entradas")
@@ -504,16 +531,18 @@ def build():
     ## Referências e documentação
 
     - [CadInsan — MDS](https://www.gov.br/mds/pt-br/Sisan/monitoramento-da-san/cadinsan).
-    - [Relatório metodológico CadInsan](https://www.gov.br/mds/pt-br/caisan/monitoramento-da-san/Relatorio_CadINSAN.pdf).
+    - [Relatório CadInsan com referência janeiro/2025 — MDS](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf).
     - [SISVAN — Ministério da Saúde](https://www.gov.br/saude/pt-br/composicao/saps/vigilancia-alimentar-e-nutricional/sisvan).
     - [IVS e IDHM — Ipea](https://repositorio.ipea.gov.br/bitstream/11058/8257/2/vulnerability.pdf).
     - [API de malhas simplificadas v4 — IBGE](https://servicodados.ibge.gov.br/api/docs/malhas?versao=4).
     - No projeto: `docs/metodologia/PLANO_ANALISE_NOTEBOOK_COLAB.md`,
-      `dados/pesquisa/README.md`, `scripts/analise_sobreposicao.py` e
+      `dados/pesquisa/README.md`, `dataset_catalogue.json`, `scripts/analise_sobreposicao.py` e
       `scripts/gerar_notebook_sobreposicao.py`.
 
-    Pendências permanecem visíveis mesmo quando o código termina sem erros:
-    qualidade computacional não substitui a confirmação metodológica das fontes.
+    Unidades e períodos são documentados no catálogo, com correspondência de
+    hashes. O relatório oficial complementa a referência mensal e os cenários
+    do CadInsan. Essa validação documental não elimina limites de desenho,
+    cobertura, compatibilidade territorial ou escolhas exploratórias de corte.
     """)
     # Hash do código-fonte incorporado, para rastrear a análise do manifesto.
     digest = hashlib.sha256((ROOT / "scripts/analise_sobreposicao.py").read_bytes()).hexdigest()

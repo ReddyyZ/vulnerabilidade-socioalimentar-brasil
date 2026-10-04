@@ -2,7 +2,7 @@
 
 ## Objetivo e recorte
 
-> Identificar áreas do Brasil de maior risco alimentar e vulnerabilidade social a partir dos indicadores IVS, IDHM, CadÚnico e SISVAN.
+> Identificar áreas do Brasil de maior risco alimentar e vulnerabilidade social a partir dos indicadores IVS, IDHM, CadÚnico, CadInsan e SISVAN.
 
 Esta pasta reúne as bases municipais já disponíveis no projeto para essa análise,
 incluindo CADINSAN como fonte complementar. O recorte nutricional selecionado é
@@ -11,26 +11,36 @@ incluindo CADINSAN como fonte complementar. O recorte nutricional selecionado é
 Organização realizada em **4 de outubro de 2026**. Os quatro arquivos de dados
 são cópias integrais dos arquivos existentes: nenhum cabeçalho, valor, código,
 formato ou categoria foi alterado nesta organização. Os arquivos de origem
-continuam preservados. As bases ainda não foram cruzadas.
+continuam preservados. A integração e os cálculos ocorrem somente na base
+analítica gerada pelo [notebook](../../notebooks/01_sobreposicao_criterios.ipynb).
 
 ## Conteúdo
 
 | Fonte | Arquivo | Registros municipais | Referência temporal | Papel na pesquisa |
 |---|---|---:|---|---|
-| IVS e IDHM | [atlasivs_municipios_2010.csv](ivs_idhm/atlasivs_municipios_2010.csv) | 5.565 | 2010, conforme identificação do arquivo | Vulnerabilidade social e desenvolvimento humano |
-| CadÚnico | [municipios-cadunico.json](cadunico/municipios-cadunico.json) | 5.564 | Não informada no arquivo | Fonte municipal disponível; período e unidade precisam de confirmação |
-| CADINSAN | [CADINSAN_2025_dados_municipais.csv](cadinsan/CADINSAN_2025_dados_municipais.csv) | 5.570 | 2025, conforme identificação do arquivo | Indicadores complementares e coluna `Cadastros_Cadunico` |
+| IVS e IDHM | [atlasivs_municipios_2010.csv](ivs_idhm/atlasivs_municipios_2010.csv) | 5.565 | 2010, documentado no catálogo | Vulnerabilidade social e desenvolvimento humano |
+| CadÚnico | [municipios-cadunico.json](cadunico/municipios-cadunico.json) | 5.564 | Junho de 2026 | Pessoas cadastradas, para contextualização de demanda |
+| CADINSAN | [CADINSAN_2025_dados_municipais.csv](cadinsan/CADINSAN_2025_dados_municipais.csv) | 5.570 | Janeiro de 2025, conforme relatório oficial | Famílias em risco estimado nos cenários com/sem efeito do PBF |
 | SISVAN | [indicadores_altura_peso_idade_menores_5_2025.csv](sisvan/indicadores_altura_peso_idade_menores_5_2025.csv) | 5.571 | 2025 | Déficit de altura/estatura para idade (DAI) e déficit de peso para idade (DPI) |
 
 **O IDHM já está no arquivo do IVS.** Não é necessário um segundo arquivo para
 acessar suas variáveis. Este CSV contém `ivs`, suas três dimensões, `idhm` e
 dimensões/componentes do IDHM.
 
-O JSON do CadÚnico contém pares `código municipal: valor inteiro`, sem dicionário
-de dados ou metadados temporais internos. Não assumir, apenas com esse arquivo,
-que os valores são pessoas, famílias, cadastros ou beneficiários. Tampouco
-substituí-los automaticamente pela coluna `Cadastros_Cadunico` do CADINSAN:
-equivalência de unidade e período precisa ser demonstrada.
+O [dataset_catalogue.json](../../dataset_catalogue.json) documenta o JSON do
+CadÚnico como contagem de **pessoas cadastradas em junho/2026**, obtida do campo
+`cadun_qtd_pessoas_cadastradas_i`, com `anomes:202606`. Os hashes das três bases
+sociais correspondem exatamente aos registrados no catálogo.
+
+Já `Cadastros_Cadunico` no CADINSAN é um denominador de **famílias**, no universo
+analisado pelo indicador. O relatório oficial citado pelo catálogo informa
+referência de janeiro/2025 e famílias com cadastro atualizado nos últimos 12
+meses. As contagens de pessoas e famílias não são intercambiáveis.
+
+`com_PBF` e `sem_PBF` representam cenários considerando e desconsiderando o
+efeito do Bolsa Família na renda. Não são grupos separados de beneficiários e
+não beneficiários. As quantidades são estimativas de risco, não medições
+diretas de insegurança alimentar de todas as famílias residentes.
 
 ## Arquivos de origem e rastreabilidade
 
@@ -47,8 +57,14 @@ As URLs registradas para os arquivos sociais estão em
 [`fonte_dados.json`](../../fonte_dados.json). Elas apontam para cópias publicadas
 no repositório `TriangulosTecnologia/cozsolidarias` no GitHub. Portanto, estes
 arquivos sociais disponíveis no projeto não devem ser descritos como extrações
-diretas feitas aqui nos portais oficiais. Confirmar metodologia, referência
-temporal e documentação das fontes antes da análise final.
+diretas feitas aqui nos portais oficiais. O catálogo é documentação do
+repositório de origem; seu status declarado é `draft`. O notebook o incorpora
+e confere a correspondência dos arquivos por SHA-256 em cada execução.
+
+A referência mensal e os cenários do CadInsan são complementados pelo
+[relatório oficial do MDS](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf),
+cuja tabela municipal foi conferida por amostragem com o CSV. O catálogo
+descreve 2025 como referência anual; o relatório explicita a base de janeiro.
 
 O SISVAN foi obtido do Relatório Público do Ministério da Saúde. A documentação
 completa, com o dicionário das 28 colunas, filtros, fórmulas, limitações e
@@ -100,9 +116,10 @@ suporte a BOM (`utf-8-sig`) para evitar alterações no primeiro cabeçalho.
 
 ## Cuidados para a análise
 
-- IVS/IDHM de 2010 e SISVAN/CADINSAN de 2025 têm referências temporais diferentes.
+- IVS/IDHM de 2010, CadInsan de janeiro/2025, SISVAN de 2025 e CadÚnico de
+  junho/2026 têm referências temporais diferentes.
   Justificar essa comparação; ela não descreve simultaneidade entre indicadores.
-- Confirmar período e unidade do CadÚnico antes de utilizá-lo em indicadores.
+- CadÚnico JSON mede pessoas; o denominador do CadInsan mede famílias.
   Uma contagem absoluta não permite calcular cobertura sem um denominador
   populacional compatível; esse denominador não está incluído nesta seleção.
 - DAI e DPI têm denominadores próprios e não devem ser somados. O SISVAN se
@@ -117,6 +134,27 @@ suporte a BOM (`utf-8-sig`) para evitar alterações no primeiro cabeçalho.
 
 As decisões metodológicas mais amplas estão em
 [`INFORMACOES_PARA_A_PESQUISA.md`](../../INFORMACOES_PARA_A_PESQUISA.md).
+
+## Processamento analítico do CadInsan
+
+O catálogo descreve o recálculo dos percentuais no aplicativo de origem em
+`datasets.municipios_cadinsan.description`, `source.notes` e nas descrições
+das colunas proporcionais. O notebook adota essa mesma forma de cálculo:
+
+```text
+CadInsan do cenário (%) =
+100 × Cadinsan_absoluto_do_cenário / Cadastros_Cadunico
+```
+
+As razões são calculadas sem arredondamento na base analítica, com ausência
+quando o denominador não é positivo. Os percentuais originais do CSV ficam
+nas colunas `cadinsan_pct_*_arquivo`, acompanhados da diferença em pontos
+percentuais. Essa transformação não altera nenhum arquivo de entrada.
+
+O notebook exporta uma comparação de seleção entre usar as razões e os
+percentuais arredondados do CSV. Com a configuração inicial P75, `com_PBF`
+e mínimo de 100 avaliações de altura, a seleção muda de 275 para **274**
+municípios, devido ao tratamento dos percentuais e empates no corte.
 
 ## Integridade e atualizações
 

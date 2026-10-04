@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
@@ -121,9 +122,52 @@ class ResearchSnapshotTests(unittest.TestCase):
     def test_default_selection_and_thresholds(self):
         result, cuts = analysis.classify(self.base)
         self.assertEqual(result.elegivel_principal.sum(), 5326)
-        self.assertEqual(result.prioritario.fillna(False).sum(), 275)
+        self.assertEqual(result.prioritario.fillna(False).sum(), 274)
         self.assertAlmostEqual(cuts.set_index("indicador").loc["ivs", "corte"], 0.448)
-        self.assertAlmostEqual(cuts.set_index("indicador").loc["cadinsan", "corte"], 11.)
+        self.assertAlmostEqual(cuts.set_index("indicador").loc["cadinsan", "corte"], 10.969776400916132)
+
+    def test_cadinsan_uses_unrounded_ratios_and_preserves_source(self):
+        indexed = self.base.set_index("codigo_ibge_6")
+        city = indexed.loc["330455"]
+        self.assertEqual(city.cadinsan_pct_com_PBF_arquivo, 18.7)
+        self.assertAlmostEqual(city.cadinsan_pct_com_PBF, 100 * 97708 / 521373)
+        self.assertNotEqual(city.cadinsan_pct_com_PBF, city.cadinsan_pct_com_PBF_arquivo)
+        self.assertAlmostEqual(city.cadinsan_diferenca_pp_com_PBF,
+                               city.cadinsan_pct_com_PBF - 18.7)
+        for scenario in ("com_PBF", "sem_PBF"):
+            expected = 100 * self.base[f"cadinsan_n_{scenario}"] / self.base.cadastros_cadunico_cadinsan
+            np.testing.assert_allclose(self.base[f"cadinsan_pct_{scenario}"], expected, equal_nan=True)
+        zero = indexed.loc["510183"]
+        self.assertTrue(pd.isna(zero.cadinsan_pct_com_PBF))
+
+    def test_rounding_comparison_explains_selection_change(self):
+        result, _ = analysis.classify(self.base)
+        comparison, old_cuts = analysis.compare_rounding(self.base, result)
+        self.assertEqual(comparison.selecionado_percentual_csv.fillna(False).sum(), 275)
+        self.assertEqual(comparison.selecionado_sem_arredondamento.fillna(False).sum(), 274)
+        changed = comparison.loc[comparison.mudou_selecao]
+        self.assertEqual(changed.codigo_ibge_6.tolist(), ["292410"])
+        self.assertAlmostEqual(old_cuts.set_index("indicador").loc["cadinsan", "corte"], 11.)
+
+    def test_catalogue_matches_social_sources_and_defines_units(self):
+        table, meta = analysis.validate_catalogue(ROOT / "dataset_catalogue.json", ROOT / "dados/pesquisa")
+        self.assertEqual(len(table), 3)
+        self.assertTrue(table.corresponde_ao_catalogo.all())
+        self.assertEqual(meta["cadunico"]["unidade"], "pessoas")
+        self.assertEqual(meta["cadunico"]["periodo"], "2026-06")
+        self.assertEqual(meta["cadinsan"]["unidade"], "famílias")
+        self.assertEqual(meta["cadinsan"]["referencia_relatorio_oficial"], "2025-01")
+        pd.testing.assert_series_equal(self.base.cadunico_pessoas_2026_06,
+                                       self.base.cadunico_valor_original, check_names=False)
+
+    def test_catalogue_rejects_hash_mismatch(self):
+        data = json.loads((ROOT / "dataset_catalogue.json").read_text())
+        data["datasets"]["municipios_cadunico"]["stats"]["checkSum"] = "sha256:" + "0" * 64
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "catalogue.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Catálogo não corresponde"):
+                analysis.validate_catalogue(path, ROOT / "dados/pesquisa")
 
     def test_notebook_is_valid_and_payload_preserves_inputs(self):
         import nbformat
@@ -139,6 +183,8 @@ class ResearchSnapshotTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(base64.b64decode(encoded))) as archive:
             for relative in analysis.DATA_FILES.values():
                 self.assertEqual(archive.read(relative), (ROOT / "dados/pesquisa" / relative).read_bytes())
+            self.assertEqual(archive.read("documentacao/dataset_catalogue.json"),
+                             (ROOT / "dataset_catalogue.json").read_bytes())
             meta = json.loads(archive.read("apoio/ibge/malha_municipal_simplificada.metadados.json"))
             mesh_bytes = archive.read("apoio/ibge/malha_municipal_simplificada.geojson")
             self.assertEqual(hashlib.sha256(mesh_bytes).hexdigest(), meta["sha256"])

@@ -17,6 +17,11 @@ DATA_FILES = {
     "cadinsan": "cadinsan/CADINSAN_2025_dados_municipais.csv",
     "sisvan": "sisvan/indicadores_altura_peso_idade_menores_5_2025.csv",
 }
+CATALOGUE_DATASETS = {
+    "ivs_idhm": "municipios_ivs",
+    "cadunico": "municipios_cadunico",
+    "cadinsan": "municipios_cadinsan",
+}
 GROUP_COLORS = {
     "Convergência dos três critérios": "#9e1b32",
     "IVS e CadInsan elevados, DAI abaixo do corte": "#e89c38",
@@ -57,6 +62,47 @@ def verify_hashes(directory):
     if {r["arquivo"] for r in records} != set(DATA_FILES.values()):
         raise ValueError("O manifesto deve identificar exatamente as quatro bases.")
     return pd.DataFrame(records)
+
+
+def validate_catalogue(catalogue_path, directory):
+    """Confere que os metadados sociais descrevem exatamente os arquivos usados."""
+    catalogue_path, directory = Path(catalogue_path), Path(directory)
+    raw = catalogue_path.read_bytes()
+    catalogue = json.loads(raw.decode("utf-8-sig"))
+    records = []
+    for source, dataset_id in CATALOGUE_DATASETS.items():
+        dataset = catalogue["datasets"][dataset_id]
+        relative = DATA_FILES[source]
+        actual = hashlib.sha256((directory / relative).read_bytes()).hexdigest()
+        expected = dataset["stats"]["checkSum"].removeprefix("sha256:")
+        if actual != expected:
+            raise ValueError(f"Catálogo não corresponde ao arquivo {relative}.")
+        temporal = dataset["temporal"]["extent"][0]
+        fields = dataset["schema"]["fields"]
+        units = sorted({f["unit"] for f in fields if "unit" in f})
+        records.append({"dataset_id": dataset_id, "arquivo": relative,
+                        "titulo": dataset["title"], "inicio_referencia_catalogo": temporal[0],
+                        "fim_referencia_catalogo": temporal[1], "unidades_catalogo": "; ".join(units),
+                        "fonte_original": dataset["source"]["url"],
+                        "sha256": actual, "corresponde_ao_catalogo": True})
+    provenance = {"catalogo_id": catalogue["catalog"]["id"],
+                  "catalogo_status": catalogue["catalog"]["status"],
+                  "catalogo_atualizado_em": catalogue["catalog"]["updated_at"],
+                  "catalogo_sha256": hashlib.sha256(raw).hexdigest(),
+                  "schema_version": catalogue["schema_version"],
+                  "fontes": records,
+                  "cadunico": {"unidade": "pessoas", "periodo": "2026-06",
+                               "campo_fonte": "cadun_qtd_pessoas_cadastradas_i",
+                               "evidencia": "datasets.municipios_cadunico.source.notes e schema.fields"},
+                  "cadinsan": {"unidade": "famílias", "referencia_catalogo": "2025",
+                               "referencia_relatorio_oficial": "2025-01",
+                               "populacao": "Famílias do universo analisado pelo CadInsan; não todas as pessoas cadastradas",
+                               "cenarios": {"com_PBF": "Risco estimado considerando o efeito do PBF na renda",
+                                            "sem_PBF": "Cenário contrafactual desconsiderando o efeito do PBF"},
+                               "relatorio_oficial": "https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf",
+                               "evidencia": "Relatório: metodologia, p. 7; cenários, p. 16–19; tabela municipal, p. 22. "
+                                            "Valores municipais conferidos por amostragem com o CSV."}}
+    return pd.DataFrame(records), provenance
 
 
 def numeric(values, label):
@@ -143,6 +189,9 @@ def prepare_base(directory):
     }
     for original, new in renames.items():
         tables["cadinsan"][new] = numeric(ci[original], original)
+    for scenario in ("com_PBF", "sem_PBF"):
+        tables["cadinsan"].rename(
+            columns={f"cadinsan_pct_{scenario}": f"cadinsan_pct_{scenario}_arquivo"}, inplace=True)
     sv = sources["sisvan"]
     if not sv["Ano"].eq("2025").all() or not sv["Faixa etária"].eq("0 a < 5 anos").all():
         raise ValueError("SISVAN fora do recorte previsto: 2025, menores de 5 anos.")
@@ -192,6 +241,9 @@ def prepare_base(directory):
             raise ValueError("Conflito entre códigos de sete dígitos das fontes.")
     # O código de 7 dígitos desconhecido permanece ausente; nunca inventar DV.
     base["municipio"] = base[["municipio_sisvan", "municipio_cadinsan", "municipio_ivs"]].bfill(axis=1).iloc[:, 0]
+    base["cadunico_pessoas_2026_06"] = base["cadunico_valor_original"]
+    base["cadunico_referencia"] = "2026-06"
+    base["cadinsan_referencia"] = "2025-01"
     base["uf"] = base["codigo_ibge_6"].str[:2].map(lambda c: UF_REGIONS[c][0])
     base["regiao"] = base["codigo_ibge_6"].str[:2].map(lambda c: UF_REGIONS[c][1])
     sv_rows = base["tem_sisvan"]
@@ -222,16 +274,19 @@ def prepare_base(directory):
             raise ValueError(f"Percentual {prefix} incompatível com a fórmula.")
         check_range(base[f"{prefix}_pct"], 0, 100, prefix)
     for scenario in ("com_PBF", "sem_PBF"):
-        check_range(base[f"cadinsan_pct_{scenario}"], 0, 100, "CadInsan")
+        check_range(base[f"cadinsan_pct_{scenario}_arquivo"], 0, 100, "CadInsan no arquivo")
         denominator = base["cadastros_cadunico_cadinsan"]
         absolute = base[f"cadinsan_n_{scenario}"]
         if (absolute > denominator).fillna(False).any():
             raise ValueError("CadInsan absoluto excede o total de cadastros informado.")
         calculated = absolute.div(denominator.where(denominator > 0)) * 100
-        reported = base[f"cadinsan_pct_{scenario}"]
+        reported = base[f"cadinsan_pct_{scenario}_arquivo"]
         complete = calculated.notna() & reported.notna()
         if not np.allclose(calculated[complete], reported[complete], atol=0.11):
             raise ValueError("Percentual CadInsan diverge da razão no arquivo.")
+        base[f"cadinsan_pct_{scenario}"] = calculated
+        base[f"cadinsan_diferenca_pp_{scenario}"] = calculated - reported
+        check_range(calculated, 0, 100, "CadInsan recalculado")
     audit = pd.DataFrame([
         {"fonte": source, "registros_origem": len(table),
          "municipios_na_uniao": len(base), "correspondencias_sisvan": int((base[f"tem_{source}"] & sv_rows).sum()),
@@ -251,6 +306,8 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
         raise ValueError("Cenário deve ser com_PBF ou sem_PBF.")
     result = base.copy()
     result["cadinsan_pct"] = result[f"cadinsan_pct_{scenario}"]
+    if f"cadinsan_pct_{scenario}_arquivo" in result:
+        result["cadinsan_pct_arquivo"] = result[f"cadinsan_pct_{scenario}_arquivo"]
     result["cadinsan_n"] = result[f"cadinsan_n_{scenario}"]
     specs = [
         ("ivs", "ivs", True, pd.Series(True, index=result.index)),
@@ -306,6 +363,22 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
     return result, pd.DataFrame(thresholds)
 
 
+def compare_rounding(base, reference, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
+    """Audita a diferença entre usar percentuais do CSV e razões sem arredondar."""
+    rounded = base.copy()
+    for option in ("com_PBF", "sem_PBF"):
+        rounded[f"cadinsan_pct_{option}"] = rounded[f"cadinsan_pct_{option}_arquivo"]
+    previous, thresholds = classify(rounded, quantile, min_evaluated, scenario)
+    columns = ["codigo_ibge_6", "municipio", "uf", "cadinsan_pct", "cadinsan_pct_arquivo"]
+    comparison = reference[columns].copy()
+    old = previous.set_index("codigo_ibge_6")
+    comparison["selecionado_percentual_csv"] = comparison["codigo_ibge_6"].map(old["prioritario"])
+    comparison["selecionado_sem_arredondamento"] = reference["prioritario"].to_numpy()
+    comparison["mudou_selecao"] = (comparison["selecionado_percentual_csv"].fillna(False).astype(bool)
+                                   != comparison["selecionado_sem_arredondamento"].fillna(False).astype(bool))
+    return comparison, thresholds
+
+
 def sensitivity(base, reference, quantiles=(0.75, 0.80), minima=(30, 50, 100),
                 scenarios=("com_PBF", "sem_PBF")):
     reference_set = set(reference.loc[reference["prioritario"].fillna(False), "codigo_ibge_6"])
@@ -354,10 +427,15 @@ def dictionary():
         ("codigo_ibge_7", "Código informado nas fontes sociais", "texto", "IVS/CadÚnico/CadInsan", "Ausente quando nenhuma fonte social fornece o código"),
         ("ivs", "Índice de Vulnerabilidade Social", "0–1", "IVS, 2010", "Maior: maior vulnerabilidade"),
         ("idhm", "Índice de Desenvolvimento Humano Municipal", "0–1", "IDHM, 2010", "Menor: menor desenvolvimento; contextual"),
-        ("cadunico_valor_original", "Valor municipal do JSON", "não confirmada", "CadÚnico, período não informado", "Unidade e período pendentes; não integra a regra"),
-        ("cadastros_cadunico_cadinsan", "Cadastros_Cadunico no CSV", "conforme arquivo", "CADINSAN_2025", "Não equivale automaticamente ao JSON"),
-        ("cadinsan_pct", "Percentual do cenário selecionado", "%", "CADINSAN_2025", "com_PBF/sem_PBF são cenários; documentação local pendente"),
-        ("cadinsan_n", "Quantidade do cenário selecionado", "conforme arquivo", "CADINSAN_2025", "Dimensão absoluta; não soma com SISVAN"),
+        ("cadunico_valor_original", "Pessoas cadastradas, valor preservado do JSON", "pessoas", "CadÚnico, junho/2026", "Unidade e período descritos no catálogo com hash correspondente"),
+        ("cadunico_pessoas_2026_06", "Alias explícito para pessoas cadastradas", "pessoas", "CadÚnico, junho/2026", "Contexto de demanda; não integra a regra principal"),
+        ("cadunico_referencia", "Referência mensal do JSON", "ano-mês", "Catálogo Cozinhas Solidárias", "2026-06"),
+        ("cadinsan_referencia", "Referência da base do CadInsan", "ano-mês", "Relatório oficial do MDS", "2025-01; não é uma média anual"),
+        ("cadastros_cadunico_cadinsan", "Famílias consideradas no denominador do CSV", "famílias", "CadInsan, janeiro/2025", "Universo analisado; não equivale às pessoas do JSON"),
+        ("cadinsan_pct", "100 × quantidade do cenário / famílias no denominador", "%", "CadInsan, janeiro/2025", "Sem arredondamento; cenários com/sem efeito do PBF"),
+        ("cadinsan_pct_*_arquivo", "Percentuais do CSV preservados", "%", "CadInsan, janeiro/2025", "Arredondados; usados para comparação, não para seleção"),
+        ("cadinsan_diferenca_pp_*", "Recalculado menos percentual do arquivo", "pontos percentuais", "Análise derivada", "Não confundir com variação percentual relativa"),
+        ("cadinsan_n", "Famílias em risco estimado no cenário selecionado", "famílias", "CadInsan, janeiro/2025", "Não é contagem de pessoas nem medida direta de fome"),
         ("dai_n", "Altura muito baixa + altura baixa", "registros avaliados", "SISVAN, 2025", "Numerador recalculado"),
         ("dai_pct", "100 × dai_n / avaliados_altura", "%", "SISVAN, 2025", "Sem arredondamento; denominador zero gera NaN"),
         ("dpi_n", "Peso muito baixo + peso baixo", "registros avaliados", "SISVAN, 2025", "Indicador complementar"),

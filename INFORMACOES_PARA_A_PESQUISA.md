@@ -2,7 +2,7 @@
 
 ## 1. Pergunta norteadora
 
-> Identificar áreas do Brasil de maior risco alimentar e vulnerabilidade social a partir dos indicadores IVS, IDHM, CadÚnico e SISVAN.
+> Identificar áreas do Brasil de maior risco alimentar e vulnerabilidade social a partir dos indicadores IVS, IDHM, CadÚnico, CadInsan e SISVAN.
 
 Este documento registra conceitos, decisões metodológicas, limitações e verificações que devem ser considerados durante a coleta, o tratamento, a análise e a interpretação dos dados.
 
@@ -12,6 +12,9 @@ Os indicadores utilizados não medem exatamente o mesmo fenômeno:
 
 - **IVS, IDHM e CadÚnico** descrevem diferentes dimensões das condições sociais, econômicas e territoriais da população.
 - **SISVAN** registra o estado nutricional e o consumo alimentar das pessoas acompanhadas pelos serviços de saúde.
+- **CadInsan** estima risco de insegurança alimentar grave entre famílias do
+  universo analisado do CadÚnico, com cenários considerando ou desconsiderando
+  o efeito do Bolsa Família na renda.
 - O estado nutricional observado no SISVAN não constitui, isoladamente, uma medida direta de insegurança alimentar domiciliar.
 
 Por isso, é metodologicamente mais seguro tratar:
@@ -388,3 +391,36 @@ Manter esta seção atualizada com as decisões definitivas da pesquisa:
 - [ ] método de identificação das áreas prioritárias;
 - [ ] análises de sensibilidade;
 - [ ] limitações incluídas no texto final.
+
+## 16. Validação documental das bases sociais e processamento do notebook
+
+Em 4 de outubro de 2026, o
+[dataset_catalogue.json](dataset_catalogue.json), do repositório Cozinhas
+Solidárias, foi conferido com as três bases sociais utilizadas. Seus hashes
+SHA-256 correspondem exatamente aos arquivos de IVS/IDHM, CadÚnico e CadInsan.
+O catálogo é preservado sem edição e incorporado ao notebook.
+
+| Fonte | Unidade | Referência |
+|---|---|---|
+| IVS/IDHM | Índices municipais | 2010 |
+| JSON CadÚnico | Pessoas cadastradas | Junho/2026 |
+| CadInsan | Famílias em risco estimado e denominador em famílias | Janeiro/2025, conforme relatório oficial |
+| SISVAN | Registros de crianças menores de cinco anos acompanhadas | 2025, todos os meses |
+
+O catálogo informa referência anual de 2025 para o CadInsan. O
+[relatório oficial citado](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf)
+explicita janeiro/2025, famílias com cadastro atualizado nos últimos 12 meses
+e cenários com/sem efeito do PBF. A tabela municipal foi conferida por amostragem
+com o CSV. Não confundir famílias no denominador do CadInsan com pessoas do JSON.
+
+O notebook recalcula CadInsan como `100 × absoluto / Cadastros_Cadunico`, sem
+arredondamento. Os percentuais do CSV permanecem em colunas `*_arquivo`, e
+denominador não positivo resulta em ausência analítica. Esse processamento
+segue o procedimento documentado em `datasets.municipios_cadinsan.description`
+e `source.notes`, sem modificar as bases de entrada.
+
+Na configuração inicial P75, `com_PBF` e mínimo de 100 avaliações de altura,
+a seleção passa de 275 municípios, usando percentuais arredondados, para 274
+com as razões recalculadas. O notebook exporta essa comparação. O estudo
+continua exploratório: diferenças temporais, cobertura, malhas territoriais e
+justificativas para os cortes ainda precisam ser consideradas.
