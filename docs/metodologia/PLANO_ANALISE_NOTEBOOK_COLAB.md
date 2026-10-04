@@ -5,14 +5,14 @@
 **Status:** estratégia inicial implementada no
 [notebook de sobreposição](../../notebooks/01_sobreposicao_criterios.ipynb).
 Este documento preserva o planejamento discutido. A implementação usa
-percentil 75, cenário `com_PBF` e mínimo de 100 avaliações de altura como
+percentil 75 para CadInsan/DAI, cenário `com_PBF` e mínimo de 100 avaliações de altura como
 parâmetros iniciais editáveis, com análise de sensibilidade. Essas escolhas
 são exploratórias e precisam de justificativa metodológica. Unidades e períodos
 das fontes sociais foram documentados com o catálogo e o relatório oficial.
 Os percentuais do CadInsan são recalculados sem arredondamento, preservando os
 valores do CSV e auditando a diferença na seleção.
 O IDHM baixo também é obrigatório na sobreposição, por decisão da pesquisa:
-P25 quando `QUANTIL = 0.75`, e P20 quando `QUANTIL = 0.80`. CadÚnico e DPI
+IDHM < 0,600. IVS exige ≥ 0,401. Ambos são cortes fixos; CadÚnico e DPI
 permanecem contextuais. Não será produzido ranking composto.
 
 ## 1. Pergunta da pesquisa
@@ -140,9 +140,10 @@ interpretação em Markdown.
 
 ### 5.1 Sobreposição de critérios — estratégia inicial recomendada
 
-Definir critérios explícitos para cada dimensão. Por exemplo, considerar
-inicialmente como “elevado” estar no quartil mais desfavorável da distribuição
-nacional.
+Definir critérios explícitos para cada dimensão. IVS usa ≥ 0,401 (alta/muito
+alta vulnerabilidade), e IDHM usa < 0,600 (baixo/muito baixo desenvolvimento).
+CadInsan e DAI usam o quartil superior da distribuição nacional válida de cada
+indicador, antes de filtrar pelos cortes sociais.
 
 Uma regra **exploratória** poderia selecionar municípios com:
 
@@ -165,11 +166,14 @@ avaliada nos gráficos e correlações. DPI acrescenta uma segunda leitura
 nutricional; CadÚnico dimensiona as pessoas cadastradas em junho/2026, sem
 substituir o denominador de famílias do CadInsan nem medir cobertura populacional.
 
-O corte do IDHM é o percentil `100 × (1 − QUANTIL)` de todos os municípios
-com IDHM disponível, incluindo empates pelo operador `≤`. Não se altera o
-valor original. Ausência de IDHM impede a classificação principal. Com os
-parâmetros padrão, há 218 municípios selecionados, contra 274 na regra anterior
-de três critérios; 56 deixam de ser selecionados por não atenderem ao IDHM baixo.
+Os cortes de IVS/IDHM não dependem de `QUANTIL`. IVS exatamente 0,401 atende;
+IDHM exatamente 0,600 não atende. Não se altera o valor original. Ausência de
+IDHM impede a classificação principal. Com os parâmetros padrão, há 242
+municípios selecionados, contra 218 na regra anterior com quartis também nos
+indicadores sociais. A mudança acrescenta 24 municípios, sem alterar o mínimo
+de avaliações nem os quantis de CadInsan/DAI. Referências:
+[faixas IVS/Ipea](https://repositorio.ipea.gov.br/bitstream/11058/4381/1/Atlas_da_vulnerabilidade_social_nos_municipios_brasileiros.pdf)
+e [faixas IDHM/PNUD](https://www.undp.org/sites/g/files/zskgke326/files/2024-05/anexo_estatistico_pnud_21maio24_isbn_web2.pdf).
 
 Além dos municípios com convergência dos quatro sinais, apresentar:
 
@@ -183,11 +187,13 @@ Esses perfis podem gerar uma discussão mais rica do que uma lista única dos
 “piores municípios”. A ausência de DAI elevado não elimina a possibilidade de
 risco alimentar.
 
-Os cortes por quartis seriam **critérios relativos da pesquisa**, não limites
+Os cortes por quartis de CadInsan/DAI são **critérios relativos da pesquisa**, não limites
 oficiais de risco. Testar também, por exemplo, o quinto mais desfavorável da
 distribuição na análise de sensibilidade.
-Nessa comparação, P75/P80 para IVS, CadInsan e DAI correspondem a P25/P20
-para IDHM. As 12 especificações atuais selecionam de 132 a 245 municípios.
+Nessa comparação, P75/P80 variam para CadInsan/DAI e DPI complementar;
+IVS ≥ 0,401 e IDHM < 0,600 permanecem fixos. As 12 especificações atuais
+selecionam de 179 a 270 municípios. Mínimos 30/50/100 e cenários com/sem PBF
+permanecem como antes; não foi adotado corte fixo de 20% para DAI.
 
 ### 5.2 Índice composto — alternativa para etapa posterior
 

@@ -419,9 +419,9 @@ denominador não positivo resulta em ausência analítica. Esse processamento
 segue o procedimento documentado em `datasets.municipios_cadinsan.description`
 e `source.notes`, sem modificar as bases de entrada.
 
-Na configuração atual P75 para IVS/CadInsan/DAI, P25 para IDHM, `com_PBF` e
-mínimo de 100 avaliações de altura, a seleção passa de 219 municípios,
-usando percentuais arredondados, para 218
+Na configuração atual IVS ≥ 0,401 e IDHM < 0,600 (fixos), P75 para CadInsan/DAI,
+`com_PBF` e mínimo de 100 avaliações de altura, a seleção passa de 243 municípios,
+usando percentuais arredondados, para 242
 com as razões recalculadas. O notebook exporta essa comparação. O estudo
 continua exploratório: diferenças temporais, cobertura, malhas territoriais e
 justificativas para os cortes ainda precisam ser consideradas.
@@ -433,12 +433,16 @@ proporcional elevado + DAI elevado**, sem ranking composto. Todos os municípios
 continuam na base integrada; a seleção exige os quatro critérios e os
 denominadores válidos. IDHM ausente gera informação insuficiente.
 
-O IDHM usa a cauda inferior: `IDHM ≤ percentil 100 × (1 − QUANTIL)`.
-Com quantil 0,75, usa P25 (0,599 nesta base); com 0,80, P20. A direção é
-considerada na comparação, sem transformar o IDHM original. A maior restrição
-é intencional, não prova de independência entre IVS e IDHM nem de causalidade.
+IVS usa corte fixo ≥ 0,401, e IDHM usa corte fixo < 0,600. Eles seguem as faixas
+de alta/muito alta vulnerabilidade e baixo/muito baixo desenvolvimento. A
+direção é considerada na comparação, sem transformar os índices originais.
+IDHM igual a 0,600 não atende ao critério. Esses cortes não variam com os
+quantis de CadInsan/DAI nem na sensibilidade; a convergência não prova
+independência entre IVS e IDHM nem causalidade.
 
-A regra anterior de três critérios selecionava 274 municípios. Ao exigir
-também IDHM baixo, a seleção passa a 218: 56 não atendem ao quarto critério.
+A regra anterior de quatro critérios, com quartis também para IVS/IDHM,
+selecionava 218 municípios. Ao mudar somente esses dois cortes para fixos,
+a seleção passa a 242. CadInsan/DAI continuam com quantis, e o mínimo principal
+continua 100 avaliações; não foi adotado corte fixo de 20% para DAI.
 DPI e CadÚnico continuam complementares. Na sensibilidade, os quatro critérios
-são mantidos, e a seleção varia de 132 a 245 municípios nas 12 especificações.
+são mantidos, e a seleção varia de 179 a 270 municípios nas 12 especificações.

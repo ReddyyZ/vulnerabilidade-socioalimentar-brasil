@@ -22,6 +22,7 @@ CATALOGUE_DATASETS = {
     "cadunico": "municipios_cadunico",
     "cadinsan": "municipios_cadinsan",
 }
+FIXED_CUTS = {"ivs": (0.401, ">="), "idhm": (0.600, "<")}
 GROUP_COLORS = {
     "Convergência dos quatro critérios": "#9e1b32",
     "IVS e CadInsan elevados, IDHM baixo, DAI abaixo do corte": "#e89c38",
@@ -299,7 +300,7 @@ def prepare_base(directory):
 
 
 def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
-    """Cortes nacionais por indicador; DAI usa apenas denominadores elegíveis."""
+    """IVS/IDHM fixos; quantis nacionais nos demais; DAI exige denominador mínimo."""
     if not 0 < quantile < 1 or not isinstance(min_evaluated, int) or min_evaluated < 1:
         raise ValueError("Quantil deve estar entre 0 e 1 e o mínimo deve ser inteiro positivo.")
     if scenario not in ("com_PBF", "sem_PBF"):
@@ -310,27 +311,32 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
         result["cadinsan_pct_arquivo"] = result[f"cadinsan_pct_{scenario}_arquivo"]
     result["cadinsan_n"] = result[f"cadinsan_n_{scenario}"]
     specs = [
-        ("ivs", "ivs", True, pd.Series(True, index=result.index)),
-        ("cadinsan", "cadinsan_pct", True, result["cadastros_cadunico_cadinsan"] > 0),
-        ("dai", "dai_pct", True, result["avaliados_altura"] >= min_evaluated),
-        ("idhm", "idhm", False, pd.Series(True, index=result.index)),
-        ("dpi", "dpi_pct", True, result["avaliados_peso"] >= min_evaluated),
+        ("ivs", "ivs", pd.Series(True, index=result.index)),
+        ("cadinsan", "cadinsan_pct", result["cadastros_cadunico_cadinsan"] > 0),
+        ("dai", "dai_pct", result["avaliados_altura"] >= min_evaluated),
+        ("idhm", "idhm", pd.Series(True, index=result.index)),
+        ("dpi", "dpi_pct", result["avaliados_peso"] >= min_evaluated),
     ]
     thresholds = []
-    for label, column, high, eligible in specs:
+    for label, column, eligible in specs:
         valid = eligible & result[column].notna()
         if not valid.any():
             raise ValueError(f"Nenhum município elegível para {label}.")
-        cutoff = result.loc[valid, column].quantile(quantile if high else 1 - quantile)
+        if label in FIXED_CUTS:
+            cutoff, operator = FIXED_CUTS[label]
+            method, percentile = "fixo", None
+        else:
+            cutoff = result.loc[valid, column].quantile(quantile)
+            operator, method, percentile = ">=", "quantil", quantile * 100
         flag = pd.Series(pd.NA, index=result.index, dtype="boolean")
-        flag.loc[valid] = (result.loc[valid, column] >= cutoff if high
-                           else result.loc[valid, column] <= cutoff)
+        flag.loc[valid] = (result.loc[valid, column] >= cutoff if operator == ">="
+                           else result.loc[valid, column] < cutoff)
         result[f"criterio_{label}"] = flag
         thresholds.append({"indicador": label, "corte": float(cutoff),
-                           "operador": ">=" if high else "<=",
+                           "operador": operator, "metodo": method,
                            "municipios_referencia": int(valid.sum()),
                            "municipios_no_criterio": int(flag.fillna(False).sum()),
-                           "percentil": quantile * 100 if high else (1 - quantile) * 100})
+                           "percentil": percentile})
     primary = ["criterio_ivs", "criterio_idhm", "criterio_cadinsan", "criterio_dai"]
     result["elegivel_principal"] = result[primary].notna().all(axis=1)
     result["prioritario"] = result[primary].all(axis=1).where(result["elegivel_principal"]).astype("boolean")
@@ -361,7 +367,9 @@ def classify(base, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
     result["cenario_cadinsan"] = scenario
     result["quantil_classificacao"] = quantile
     result["minimo_avaliados"] = min_evaluated
-    return result, pd.DataFrame(thresholds)
+    cuts = pd.DataFrame(thresholds)
+    cuts["percentil"] = cuts["percentil"].astype(object).where(cuts["percentil"].notna(), None)
+    return result, cuts
 
 
 def compare_rounding(base, reference, quantile=0.75, min_evaluated=100, scenario="com_PBF"):
@@ -389,7 +397,9 @@ def sensitivity(base, reference, quantiles=(0.75, 0.80), minima=(30, 50, 100),
         selected = set(result.loc[result["prioritario"].fillna(False), "codigo_ibge_6"])
         union = reference_set | selected
         records.append({"cenario": scenario, "quantil": quantile,
-                        "percentil_idhm": (1 - quantile) * 100, "minimo_avaliados": minimum,
+                        "corte_ivs": FIXED_CUTS["ivs"][0], "operador_ivs": FIXED_CUTS["ivs"][1],
+                        "corte_idhm": FIXED_CUTS["idhm"][0], "operador_idhm": FIXED_CUTS["idhm"][1],
+                        "minimo_avaliados": minimum,
                         "elegiveis": int(result["elegivel_principal"].sum()),
                         "prioritarios": len(selected), "coincidentes_principal": len(reference_set & selected),
                         "jaccard_principal": len(reference_set & selected) / len(union) if union else 1.0})
@@ -427,8 +437,8 @@ def dictionary():
     rows = [
         ("codigo_ibge_6", "Chave analítica por prefixo único", "texto", "Fontes; origem preservada", "Não implica harmonização histórica completa"),
         ("codigo_ibge_7", "Código informado nas fontes sociais", "texto", "IVS/CadÚnico/CadInsan", "Ausente quando nenhuma fonte social fornece o código"),
-        ("ivs", "Índice de Vulnerabilidade Social", "0–1", "IVS, 2010", "Maior: maior vulnerabilidade"),
-        ("idhm", "Índice de Desenvolvimento Humano Municipal", "0–1", "IDHM, 2010", "Menor: menor desenvolvimento; critério obrigatório no percentil 100 × (1 − quantil)"),
+        ("ivs", "Índice de Vulnerabilidade Social", "0–1", "IVS, 2010", "Critério obrigatório: IVS ≥ 0,401, alta ou muito alta vulnerabilidade"),
+        ("idhm", "Índice de Desenvolvimento Humano Municipal", "0–1", "IDHM, 2010", "Critério obrigatório: IDHM < 0,600, baixo ou muito baixo"),
         ("cadunico_valor_original", "Pessoas cadastradas, valor preservado do JSON", "pessoas", "CadÚnico, junho/2026", "Unidade e período descritos no catálogo com hash correspondente"),
         ("cadunico_pessoas_2026_06", "Alias explícito para pessoas cadastradas", "pessoas", "CadÚnico, junho/2026", "Contexto de demanda; não integra a regra principal"),
         ("cadunico_referencia", "Referência mensal do JSON", "ano-mês", "Catálogo Cozinhas Solidárias", "2026-06"),
@@ -444,7 +454,7 @@ def dictionary():
         ("dpi_pct", "100 × dpi_n / avaliados_peso", "%", "SISVAN, 2025", "Não somar com DAI"),
         ("avaliados_altura", "Total avaliado em Altura X Idade", "registros avaliados", "SISVAN, 2025", "Não é medida de cobertura populacional"),
         ("avaliados_peso", "Total avaliado em Peso X Idade", "registros avaliados", "SISVAN, 2025", "Denominador específico de DPI"),
-        ("criterio_*", "Flag relativa ao corte nacional", "booleano anulável", "Análise derivada", "Ausente quando indicador não é elegível"),
+        ("criterio_*", "Flag para corte fixo (IVS/IDHM) ou quantil nacional (demais)", "booleano anulável", "Análise derivada", "Ausente quando indicador não é elegível; IVS ≥ 0,401 e IDHM < 0,600"),
         ("prioritario", "Coincidência de IVS, CadInsan e DAI elevados e IDHM baixo", "booleano anulável", "Análise derivada", "Quatro critérios obrigatórios; ausente para informação insuficiente"),
         ("numero_criterios_primarios", "Quantidade de critérios primários atendidos", "0–4", "Análise derivada", "Ausente quando falta informação para qualquer critério primário; não é ranking"),
         ("perfil", "Grupo exploratório de sobreposição", "categoria", "Análise derivada", "Não é classificação oficial"),
@@ -536,12 +546,12 @@ def correlation_figure(result, output, minimum=100):
 def sensitivity_figure(table, output):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(11, 4.5))
-    labels = [f"{r.cenario}\nP{r.quantil * 100:.0f} / IDHM P{(1 - r.quantil) * 100:.0f}\nn≥{r.minimo_avaliados}"
+    labels = [f"{r.cenario}\nCadInsan/DAI P{r.quantil * 100:.0f}\nn≥{r.minimo_avaliados}"
               for r in table.itertuples()]
     ax.bar(range(len(table)), table["prioritarios"], color="#327c81")
     ax.set_xticks(range(len(table)), labels, rotation=45, ha="right", fontsize=8)
     ax.set_ylabel("Municípios selecionados")
-    ax.set_title("Sensibilidade da seleção aos cortes, denominadores e cenários")
+    ax.set_title("Sensibilidade: quantis, denominadores e cenários; IVS/IDHM com cortes fixos")
     fig.tight_layout()
     save_figure(fig, output, "04_sensibilidade")
     return fig

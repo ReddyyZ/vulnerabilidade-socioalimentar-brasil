@@ -20,34 +20,41 @@ fontes são restaurados na sessão e o processamento gera resultados separados.
 
 ## Regra inicial
 
-- IVS igual ou superior ao percentil 75 dos municípios com valor disponível.
-- IDHM igual ou inferior ao percentil 25 dos municípios com valor disponível.
+- IVS ≥ **0,401**, corte fixo de vulnerabilidade alta ou muito alta.
+- IDHM < **0,600**, corte fixo de desenvolvimento baixo ou muito baixo.
 - CadInsan proporcional `com_PBF` recalculado sem arredondamento,
   igual ou superior ao percentil 75, com
   denominador informado positivo.
 - DAI igual ou superior ao percentil 75 dos municípios com pelo menos
   **100 avaliações de altura**.
-- Dados válidos para os quatro critérios; empates nos cortes são incluídos.
+- Dados válidos para os quatro critérios; empates nos quantis e no corte do IVS
+  são incluídos, enquanto o limite do IDHM é estrito (`<`).
 
-Esses cortes são exploratórios, não classificações oficiais. Cada município
-tem o mesmo peso no cálculo dos quantis. Os universos de referência dos
-indicadores são distintos e aparecem na tabela de cortes.
+Os cortes sociais seguem as faixas de referência do
+[Atlas do IVS/Ipea](https://repositorio.ipea.gov.br/bitstream/11058/4381/1/Atlas_da_vulnerabilidade_social_nos_municipios_brasileiros.pdf)
+e do [IDHM/PNUD](https://www.undp.org/sites/g/files/zskgke326/files/2024-05/anexo_estatistico_pnud_21maio24_isbn_web2.pdf).
+IVS exatamente 0,401 é incluído; IDHM exatamente 0,600 não é incluído.
+Os quantis de CadInsan/DAI e o mínimo de avaliações são escolhas exploratórias;
+a sobreposição não é classificação oficial de risco alimentar. Cada município
+tem o mesmo peso nos quantis nacionais, calculados antes de filtrar pelos
+critérios sociais. A tabela de cortes distingue método fixo de quantil;
+percentil fica vazio para IVS/IDHM.
 
 DAI/DPI e CadInsan são recalculados sem arredondamento na base analítica. Denominador zero
 produz ausência analítica (`NaN`), mantendo os valores do CSV em colunas próprias.
 DPI e CadÚnico são indicadores contextuais. O JSON representa pessoas
 cadastradas em junho/2026; a regra principal é IVS elevado + IDHM baixo +
 CadInsan elevado + DAI elevado. O IDHM passou a ser obrigatório por decisão
-metodológica da pesquisa. Com `QUANTIL = 0.75`, o corte do IDHM é P25;
-com `0.80`, é P20. IDHM ausente implica informação insuficiente, não baixo risco.
+metodológica da pesquisa. `QUANTIL` não altera IVS/IDHM; seus cortes são fixos
+também na sensibilidade. IDHM ausente implica informação insuficiente, não baixo risco.
 
 O notebook valida os hashes do catálogo contra as três bases sociais, conserva
 os percentuais originais em colunas `*_arquivo` e exporta a comparação entre
 seleções com percentuais arredondados e recalculados. Com os parâmetros padrão,
-são **218 municípios selecionados**; usar as proporções do CSV resultaria em 219.
-A regra anterior, sem exigir IDHM baixo, selecionava 274. A nova regra retira
-56 municípios que atendiam aos três critérios, mas não ao corte do IDHM (≤ 0,599).
-As bases originais e os demais parâmetros permanecem iguais.
+são **242 municípios selecionados**; usar as proporções do CSV resultaria em 243.
+A regra anterior, com quartis também para IVS/IDHM, selecionava 218. A troca
+somente dos cortes sociais acrescenta 24 municípios; as bases originais, os
+quantis nutricionais/alimentares e o mínimo de 100 avaliações permanecem iguais.
 
 ## Produtos
 
@@ -61,7 +68,8 @@ As bases originais e os demais parâmetros permanecem iguais.
 - Resumo regional por razão entre somas, com denominadores separados de DAI/DPI.
 - Sensibilidade a percentis 75/80, mínimos de 30/50/100 e cenários
   `com_PBF`/`sem_PBF`, incluindo frequência de seleção e Jaccard. O IDHM usa
-  percentis 25/20, respectivamente; as 12 especificações selecionam de 132 a 245 municípios.
+  corte fixo < 0,600 e IVS ≥ 0,401 em todas as especificações;
+  as 12 especificações selecionam de 179 a 270 municípios.
 - CSVs, figuras PNG/SVG, síntese Markdown e manifesto com parâmetros, hashes e
   versões do ambiente, reunidos em um ZIP por execução.
 - Validação do catálogo e auditoria do efeito do arredondamento, com os

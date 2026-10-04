@@ -21,8 +21,8 @@ class OverlapTests(unittest.TestCase):
     def sample(self):
         return pd.DataFrame({
             "codigo_ibge_6": ["110001", "110002", "110003", "110004", "110005"],
-            "ivs": [0.1, 0.2, 0.3, 0.4, np.nan],
-            "idhm": [0.9, 0.8, 0.7, 0.6, np.nan],
+            "ivs": [0.1, 0.2, 0.3, 0.45, np.nan],
+            "idhm": [0.9, 0.8, 0.7, 0.55, np.nan],
             "cadinsan_pct_com_PBF": [10., 20., 30., 40., np.nan],
             "cadinsan_pct_sem_PBF": [20., 30., 40., 50., np.nan],
             "cadinsan_n_com_PBF": [10., 20., 30., 40., np.nan],
@@ -73,19 +73,37 @@ class OverlapTests(unittest.TestCase):
         self.assertEqual(result.loc[3, "perfil"], "Informação insuficiente")
         self.assertEqual(result.loc[3, "motivo_nao_classificacao"], "IDHM ausente")
 
-    def test_idhm_uses_lower_tail_and_includes_cutoff(self):
+    def test_fixed_social_cutoffs_include_ivs_and_exclude_idhm_boundary(self):
         frame = self.sample()
-        frame.loc[:3, "idhm"] = [0.9, 0.8, 0.6, 0.6]
+        frame.loc[:3, "ivs"] = [0.400, 0.401, 0.402, 0.45]
+        frame.loc[:3, "idhm"] = [0.599, 0.600, 0.601, 0.55]
         result, cuts = analysis.classify(frame)
-        idhm = cuts.set_index("indicador").loc["idhm"]
-        self.assertEqual(idhm["percentil"], 25.)
-        self.assertEqual(idhm["operador"], "<=")
-        self.assertEqual(idhm["corte"], 0.6)
-        self.assertTrue(result.loc[2:3, "criterio_idhm"].all())
+        indexed = cuts.set_index("indicador")
+        self.assertEqual(indexed.loc["ivs", "corte"], 0.401)
+        self.assertEqual(indexed.loc["ivs", "operador"], ">=")
+        self.assertEqual(indexed.loc["idhm", "corte"], 0.600)
+        self.assertEqual(indexed.loc["idhm", "operador"], "<")
+        for indicator in ("ivs", "idhm"):
+            self.assertEqual(indexed.loc[indicator, "metodo"], "fixo")
+            self.assertIsNone(indexed.loc[indicator, "percentil"])
+        self.assertEqual(result.loc[:3, "criterio_ivs"].tolist(), [False, True, True, True])
+        self.assertEqual(result.loc[:3, "criterio_idhm"].tolist(), [True, False, False, True])
         self.assertEqual(result.loc[3, "numero_criterios_primarios"], 4)
         self.assertEqual(result.loc[3, "perfil"], "Convergência dos quatro critérios")
-        _, cuts = analysis.classify(frame, quantile=0.8)
-        self.assertAlmostEqual(cuts.set_index("indicador").loc["idhm", "percentil"], 20.)
+
+    def test_quantile_changes_do_not_change_social_criteria(self):
+        frame = self.sample()
+        reference, cuts75 = analysis.classify(frame, quantile=0.75)
+        result, cuts80 = analysis.classify(frame, quantile=0.8)
+        for indicator in ("ivs", "idhm"):
+            pd.testing.assert_series_equal(reference[f"criterio_{indicator}"], result[f"criterio_{indicator}"])
+            pd.testing.assert_series_equal(cuts75.set_index("indicador").loc[indicator],
+                                           cuts80.set_index("indicador").loc[indicator])
+        for indicator in ("cadinsan", "dai", "dpi"):
+            self.assertEqual(cuts75.set_index("indicador").loc[indicator, "metodo"], "quantil")
+            self.assertLess(cuts75.set_index("indicador").loc[indicator, "corte"],
+                            cuts80.set_index("indicador").loc[indicator, "corte"])
+        json.dumps(cuts75.to_dict("records"), allow_nan=False)
 
     def test_numeric_formats_and_invalid_input(self):
         parsed = analysis.numeric(pd.Series(["18,7%", "2.35%", "", None]), "teste")
@@ -119,6 +137,9 @@ class OverlapTests(unittest.TestCase):
         self.assertEqual(principal.jaccard_principal, 1.)
         self.assertEqual(stability.set_index("codigo_ibge_6").loc["110005", "cenarios_elegiveis"], 0)
         self.assertEqual(len(table), 12)
+        self.assertTrue(table.corte_ivs.eq(0.401).all())
+        self.assertTrue(table.corte_idhm.eq(0.600).all())
+        self.assertTrue(table.operador_idhm.eq("<").all())
 
     def test_invalid_parameters_fail(self):
         for kwargs in ({"quantile": 1}, {"min_evaluated": 0}, {"scenario": "inventado"}):
@@ -150,21 +171,22 @@ class ResearchSnapshotTests(unittest.TestCase):
     def test_default_selection_and_thresholds(self):
         result, cuts = analysis.classify(self.base)
         self.assertEqual(result.elegivel_principal.sum(), 5326)
-        self.assertEqual(result.prioritario.fillna(False).sum(), 218)
-        self.assertAlmostEqual(cuts.set_index("indicador").loc["ivs", "corte"], 0.448)
+        self.assertEqual(result.prioritario.fillna(False).sum(), 242)
+        self.assertAlmostEqual(cuts.set_index("indicador").loc["ivs", "corte"], 0.401)
         self.assertAlmostEqual(cuts.set_index("indicador").loc["cadinsan", "corte"], 10.969776400916132)
-        self.assertAlmostEqual(cuts.set_index("indicador").loc["idhm", "corte"], 0.599)
+        self.assertAlmostEqual(cuts.set_index("indicador").loc["dai", "corte"], 12.380572037121558)
+        self.assertAlmostEqual(cuts.set_index("indicador").loc["idhm", "corte"], 0.600)
         selected = result.loc[result.prioritario.fillna(False)]
         self.assertTrue(selected.criterio_idhm.all())
         self.assertTrue(selected.numero_criterios_primarios.eq(4).all())
 
-    def test_four_criteria_are_subset_of_previous_three(self):
+    def test_four_criteria_require_low_idhm_with_fixed_ivs(self):
         result, _ = analysis.classify(self.base)
         three = result[["criterio_ivs", "criterio_cadinsan", "criterio_dai"]].fillna(False).all(axis=1)
         four = result.prioritario.fillna(False)
-        self.assertEqual(three.sum(), 274)
+        self.assertEqual(three.sum(), 342)
         self.assertFalse((four & ~three).any())
-        self.assertEqual((three & ~four).sum(), 56)
+        self.assertEqual((three & ~four).sum(), 100)
         self.assertFalse(result.loc[three & ~four, "criterio_idhm"].any())
 
     def test_cadinsan_uses_unrounded_ratios_and_preserves_source(self):
@@ -184,8 +206,8 @@ class ResearchSnapshotTests(unittest.TestCase):
     def test_rounding_comparison_explains_selection_change(self):
         result, _ = analysis.classify(self.base)
         comparison, old_cuts = analysis.compare_rounding(self.base, result)
-        self.assertEqual(comparison.selecionado_percentual_csv.fillna(False).sum(), 219)
-        self.assertEqual(comparison.selecionado_sem_arredondamento.fillna(False).sum(), 218)
+        self.assertEqual(comparison.selecionado_percentual_csv.fillna(False).sum(), 243)
+        self.assertEqual(comparison.selecionado_sem_arredondamento.fillna(False).sum(), 242)
         changed = comparison.loc[comparison.mudou_selecao]
         self.assertEqual(changed.codigo_ibge_6.tolist(), ["292410"])
         self.assertAlmostEqual(old_cuts.set_index("indicador").loc["cadinsan", "corte"], 11.)
