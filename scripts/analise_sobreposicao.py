@@ -177,12 +177,12 @@ def sisvan_metadata(directory):
 def interpret_sisvan_counts(values, percentages, code):
     """Interpreta artefatos numéricos sem modificar as células de entrada.
 
-    Inteiros admitem a escala original ou ×1000; decimais do XLSX são
-    interpretados como milhares. Exige soma exata e percentuais a 0,011 pp.
-    Quando mais de uma escala é possível, conserva o menor total coerente,
-    explicitamente sinalizando a ambiguidade para auditoria.
+    Mantém inteiros coerentes sem criar uma alternativa uniforme ×1000.
+    Decimais do XLSX são interpretados como milhares. Apenas quando a soma
+    ou os percentuais não conferem, tenta conciliar células truncadas pelo
+    exportador. Exige uma solução única, soma exata e percentuais a 0,011 pp.
     """
-    candidates = []
+    original_values, initial, integral = [], [], []
     for raw in values:
         text = str(raw).strip()
         try:
@@ -191,14 +191,16 @@ def interpret_sisvan_counts(values, percentages, code):
             raise ValueError(f"{code}: contagem SISVAN não numérica: {raw!r}") from exc
         if not value.is_finite() or value < 0:
             raise ValueError(f"{code}: contagem SISVAN inválida: {raw!r}")
+        original_values.append(value)
         if value == value.to_integral_value():
-            integer = int(value)
-            candidates.append([integer, integer * 1000] if integer else [0])
+            initial.append(int(value))
+            integral.append(True)
         else:
             scaled = value * 1000
             if scaled != scaled.to_integral_value():
                 raise ValueError(f"{code}: escala decimal SISVAN irresolvível: {raw!r}")
-            candidates.append([int(scaled)])
+            initial.append(int(scaled))
+            integral.append(False)
     pcts = []
     for raw in percentages:
         text = str(raw).strip()
@@ -206,22 +208,38 @@ def interpret_sisvan_counts(values, percentages, code):
         if not np.isfinite(pct) or not 0 <= pct <= 100:
             raise ValueError(f"{code}: percentual SISVAN inválido: {raw!r}")
         pcts.append(pct)
+
+    def consistent(counts, total):
+        if sum(counts) != total:
+            return False
+        if total == 0:
+            return not any(pcts)
+        return all(abs(n / total * 100 - pct) <= 0.011 for n, pct in zip(counts, pcts))
+
+    # Regra aprovada: não extrapolar inteiros cuja soma e percentuais conferem.
+    if consistent(initial[:-1], initial[-1]):
+        changed = any(value != n for value, n in zip(original_values, initial))
+        return tuple(initial), changed, 1
+
+    # Exportações podem perder zeros finais (ex.: 1.000 vira 1). Essa leitura
+    # só é tentada para linhas inconsistentes, não para criar outra população.
+    candidates = [[n, n * 1000] if is_int and n else [n]
+                  for n, is_int in zip(initial, integral)]
     solutions = []
     for counts in product(*candidates[:-1]):
         total = sum(counts)
         if total not in candidates[-1]:
             continue
-        if total == 0:
-            if any(pcts):
-                continue
-        elif not all(abs(n / total * 100 - pct) <= 0.011 for n, pct in zip(counts, pcts)):
+        if not consistent(counts, total):
             continue
         solutions.append((*counts, total))
     if not solutions:
         raise ValueError(f"{code}: contagens não conciliam soma e percentuais oficiais.")
-    chosen = min(solutions, key=lambda item: item[-1])
-    changed = any(Decimal(str(raw)) != n for raw, n in zip(values, chosen))
-    return chosen, changed, len(solutions)
+    if len(solutions) != 1:
+        raise ValueError(f"{code}: contagens inconsistentes admitem mais de uma interpretação; conferir na fonte.")
+    chosen = solutions[0]
+    changed = any(value != n for value, n in zip(original_values, chosen))
+    return chosen, changed, 1
 
 
 def prepare_base(directory):
@@ -512,7 +530,7 @@ def dictionary():
         ("avaliados_altura", "Total avaliado em Altura X Idade", "registros avaliados", "SISVAN, 2025", "Não é medida de cobertura populacional"),
         ("*_valor_fonte", "Valores das células de contagem do XLSX", "texto", "SISVAN, 2025", "Preservados antes da interpretação da escala"),
         ("sisvan_escala_alterada", "Alguma contagem foi interpretada em escala diferente", "booleano", "Análise derivada", "A entrada não é reescrita"),
-        ("sisvan_escalas_compativeis", "Número de soluções compatíveis com soma e percentuais", "inteiro", "Análise derivada", "Mais de uma: adotado o menor total compatível; ambiguidade da fonte"),
+        ("sisvan_escalas_compativeis", "Uma interpretação validada por soma e percentuais", "inteiro", "Análise derivada", "Inteiros coerentes são mantidos; linhas inconsistentes exigem solução única"),
         ("criterio_*", "Flag para corte fixo (IVS/IDHM) ou quantil nacional (demais)", "booleano anulável", "Análise derivada", "Ausente quando indicador não é elegível; IVS ≥ 0,401 e IDHM < 0,600"),
         ("prioritario", "Coincidência de IVS, CadInsan e DAI elevados e IDHM baixo", "booleano anulável", "Análise derivada", "Quatro critérios obrigatórios; ausente para informação insuficiente"),
         ("numero_criterios_primarios", "Quantidade de critérios primários atendidos", "0–4", "Análise derivada", "Ausente quando falta informação para qualquer critério primário; não é ranking"),

@@ -196,6 +196,9 @@ def build():
     As células técnicas recolhidas preparam o ambiente e recuperam os arquivos.
     A integridade das entradas é verificada antes da análise; os arquivos
     originais permanecem separados dos resultados derivados.
+    As tabelas exibem contagens inteiras, índices com três casas decimais e
+    percentuais com duas casas e `%`, no padrão brasileiro. `—` indica ausência.
+    Essa formatação não modifica os valores dos cálculos nem os CSVs exportados.
     """)
     setup_cell = code("""
     import importlib.util
@@ -204,7 +207,8 @@ def build():
     from pathlib import Path
 
     packages = {"pandas": "pandas>=2.2,<4", "numpy": "numpy>=1.26,<3",
-                "matplotlib": "matplotlib>=3.8,<4", "scipy": "scipy>=1.11,<2"}
+                "matplotlib": "matplotlib>=3.8,<4", "scipy": "scipy>=1.11,<2",
+                "jinja2": "jinja2>=3.1,<4"}
     missing = [requirement for module, requirement in packages.items()
                if importlib.util.find_spec(module) is None]
     if missing:
@@ -232,8 +236,8 @@ def build():
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
     PASTA_FIGURAS.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.max_columns", 30)
-    pd.set_option("display.float_format", lambda x: f"{x:.3f}")
     """, hidden=True)
+    setup_cell.source += "\n\n" + (ROOT / "scripts/formatacao_tabelas.py").read_text(encoding="utf-8")
     encoded = payload()
     code('# @title Bases e malha incorporadas — executar sem editar\n'
          f'PACOTE_BASE64 = "{encoded}"\n'
@@ -260,11 +264,11 @@ def build():
     figure_style()
     print("Municípios na união:", len(base))
     print("Integridade das bases e correspondência com o catálogo verificadas.")
-    display(controle_integracao)
+    display(tabela_br(controle_integracao))
     ausencias = base.loc[~base[["tem_ivs_idhm", "tem_cadunico", "tem_cadinsan", "tem_sisvan"]].all(axis=1),
                          ["codigo_ibge_6", "codigo_ibge_7", "municipio", "uf",
                           "tem_ivs_idhm", "tem_cadunico", "tem_cadinsan", "tem_sisvan"]]
-    display(ausencias)
+    display(tabela_br(ausencias))
     """)
     md("""
     **Interpretação:** a união preserva municípios sem informações sociais.
@@ -292,16 +296,8 @@ def build():
     artificiais nos cortes; os valores de origem permanecem preservados.
     Denominador zero gera percentual indefinido, não ausência de déficit.
 
-    **Leitura das contagens SISVAN:** o exportador apresenta algumas contagens
-    como números decimais (por exemplo, `1.02` para 1.020). O notebook interpreta
-    a escala por município, exigindo soma das três categorias igual ao total e
-    concordância com os percentuais oficiais (tolerância de 0,011 ponto percentual).
-    Falha de conciliação interrompe a análise. Quando mais de uma escala é
-    compatível, adota-se o menor total e registra-se a ambiguidade explicitamente.
-    Os valores da fonte e a auditoria são exportados; a entrada nunca é reescrita.
-    A ambiguidade pode afetar contagens e elegibilidade pelo mínimo de avaliações,
-    embora escalas uniformes não alterem o DAI percentual. Esta é uma limitação
-    do arquivo agregado, não uma identificação individual de crianças.
+    As contagens são conferidas pela soma das categorias e pelos percentuais
+    oficiais antes do cálculo do DAI. Essa verificação não reescreve a entrada.
     """)
     code("""
     qualidade_sisvan = pd.DataFrame({
@@ -311,21 +307,21 @@ def build():
                        int(base["avaliados_altura"].between(1, MINIMO_AVALIADOS - 1).sum()),
                        int(base["sisvan_escala_alterada"].fillna(False).sum()),
                        int(base["sisvan_escalas_compativeis"].gt(1).sum())]})
-    display(qualidade_sisvan)
+    display(tabela_br(qualidade_sisvan.iloc[:2]))
     colunas_auditoria = ["codigo_ibge_6", "municipio", "uf", "avaliados_altura",
                         "altura_muito_baixa_n", "altura_baixa_n", "altura_adequada_n",
                         "sisvan_escala_alterada", "sisvan_escalas_compativeis"]
     colunas_auditoria += [c for c in base if c.endswith(("_valor_fonte", "_percentual_fonte"))]
     interpretacao_sisvan = base.loc[base["tem_sisvan"], colunas_auditoria].copy()
-    display(base.loc[base["avaliados_altura"].eq(0),
-                     ["municipio", "uf", "dai_pct", "avaliados_altura"]])
+    display(tabela_br(base.loc[base["avaliados_altura"].eq(0),
+                     ["municipio", "uf", "dai_pct", "avaliados_altura"]]))
     totais = []
     for indicador, denominador in [("dai", "avaliados_altura")]:
         n = base[f"{indicador}_n"].sum()
         d = base[denominador].sum()
         totais.append({"indicador": indicador.upper(), "numerador": n,
                        "denominador": d, "percentual_agregado": n / d * 100})
-    display(pd.DataFrame(totais))
+    display(tabela_br(pd.DataFrame(totais)))
     """)
     md("""
     **Interpretação:** esses totais descrevem os registros dos relatórios
@@ -344,8 +340,8 @@ def build():
     """)
     code("""
     classificados, cortes = classify(base, QUANTIL, MINIMO_AVALIADOS, CENARIO_CADINSAN)
-    display(cortes)
-    display(classificados["perfil"].value_counts().rename_axis("perfil").reset_index(name="municipios"))
+    display(tabela_br(cortes))
+    display(tabela_br(classificados["perfil"].value_counts().rename_axis("perfil").reset_index(name="municipios")))
     sem_classificacao = classificados.loc[~classificados["elegivel_principal"],
         ["codigo_ibge_6", "municipio", "uf", "avaliados_altura", "motivo_nao_classificacao"]]
     print("Municípios com informação insuficiente:", len(sem_classificacao))
@@ -355,7 +351,7 @@ def build():
     total_recalculado = int(classificados["prioritario"].fillna(False).sum())
     display(Markdown(f"**Efeito do arredondamento:** {total_com_csv} municípios com percentuais do CSV; "
                      f"{total_recalculado} com as razões sem arredondamento usadas na análise."))
-    display(comparacao_arredondamento.loc[comparacao_arredondamento["mudou_selecao"]])
+    display(tabela_br(comparacao_arredondamento.loc[comparacao_arredondamento["mudou_selecao"]]))
     """)
     md("""
     ## 6. Distribuições, associações e redundância
@@ -456,13 +452,13 @@ def build():
     caracterizacao_municipios = prioritarios[list(colunas_caracterizacao)].rename(columns=colunas_caracterizacao)
     print("Municípios com convergência:", len(prioritarios))
     display(Markdown("### Indicadores da seleção"))
-    display(indicadores_selecao.head(30))
+    display(tabela_br(indicadores_selecao.head(30)))
     display(Markdown(f"### Caracterização dos municípios selecionados\\n\\nCenário CadInsan: `{CENARIO_CADINSAN}`."))
-    display(caracterizacao_municipios.head(30))
+    display(tabela_br(caracterizacao_municipios.head(30)))
     print("Prévia dos mesmos 30 municípios; a exportação mantém a lista completa e os nomes originais das colunas.")
     resumo_regional = regional_summary(classificados)
     display(Markdown("### Comparação regional — DAI"))
-    display(resumo_regional)
+    display(tabela_br(resumo_regional))
     """)
     md("""
     ## 9. Sensibilidade e estabilidade da seleção
@@ -488,11 +484,11 @@ def build():
     tabela_sensibilidade, estabilidade = sensitivity(base, classificados, quantis_teste, minimos_teste, cenarios_teste)
     classificados = classificados.merge(estabilidade, on="codigo_ibge_6", validate="one_to_one")
     prioritarios = classificados.loc[classificados["prioritario"].fillna(False)].sort_values(["uf", "municipio"])
-    display(tabela_sensibilidade)
+    display(tabela_br(tabela_sensibilidade))
     display(sensitivity_figure(tabela_sensibilidade, PASTA_FIGURAS))
     plt.close("all")
-    display(prioritarios[["municipio", "uf", "cenarios_elegiveis", "cenarios_selecionado",
-                          "cenarios_testados", "fracao_cenarios_selecionado"]].head(30))
+    display(tabela_br(prioritarios[["municipio", "uf", "cenarios_elegiveis", "cenarios_selecionado",
+                          "cenarios_testados", "fracao_cenarios_selecionado"]].head(30)))
     """)
     md("""
     ## 10. Síntese para o laboratório e limitações

@@ -308,7 +308,8 @@ A fórmula é aplicada somente na base analítica do notebook, nunca pelo
 coletor padrão. As três categorias e `Total` permanecem separados na entrada.
 O CSV de 12 colunas achata cabeçalhos multinível e preserva as células, sem
 normalizar escalas; filtros ficam no sidecar. A análise interpreta contagens
-por soma e percentuais, sinaliza ambiguidades e calcula DAI sem arredondar.
+por soma e percentuais, preserva inteiros coerentes sem hipótese uniforme
+×1.000, exige solução única para inconsistências e calcula DAI sem arredondar.
 
 ### 8.2 Peso por idade: funcionalidade opcional, fora da análise vigente
 

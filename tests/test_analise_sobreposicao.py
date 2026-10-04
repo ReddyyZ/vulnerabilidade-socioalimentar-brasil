@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from unittest.mock import patch
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import analise_sobreposicao as analysis
+from formatacao_tabelas import tabela_br
 
 
 class OverlapTests(unittest.TestCase):
@@ -290,10 +292,12 @@ class ResearchSnapshotTests(unittest.TestCase):
         shown = []
         namespace = {"classificados": classified, "display": shown.append,
                      "Markdown": lambda text: text, "regional_summary": analysis.regional_summary,
+                     "tabela_br": tabela_br,
                      "CENARIO_CADINSAN": "com_PBF"}
         with contextlib.redirect_stdout(io.StringIO()):
             exec(section.source, namespace)
-        tables = [value for value in shown if isinstance(value, pd.DataFrame)]
+        from pandas.io.formats.style import Styler
+        tables = [value.data for value in shown if isinstance(value, Styler)]
         self.assertEqual(len(tables), 3)
         selection, context, regions = tables
         self.assertEqual(selection.columns.tolist(), [
@@ -316,6 +320,11 @@ class ResearchSnapshotTests(unittest.TestCase):
         pd.testing.assert_series_equal(selection["DAI (%)"], priority.dai_pct.head(30), check_names=False)
         pd.testing.assert_series_equal(context["Pessoas no CadÚnico — jun/2026"],
                                        priority.cadunico_pessoas_2026_06.head(30), check_names=False)
+        html = next(value.to_html() for value in shown if isinstance(value, Styler)
+                    and "Pessoas no CadÚnico — jun/2026" in value.data.columns)
+        self.assertIn(">9.486</td>", html)
+        self.assertIn(">223</td>", html)
+        self.assertNotIn("9486.000", html)
 
     def test_height_only_input_and_analysis_do_not_export_weight(self):
         sources, _ = analysis.read_sources(ROOT / "dados/pesquisa")
@@ -371,7 +380,7 @@ class ResearchSnapshotTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
                          "21aa902b60fd5f08b1109f95a1c7e9a635a937fc96661fb57fe2519dcca9a92d")
 
-    def test_count_interpretation_audits_ambiguity_and_rejects_inconsistency(self):
+    def test_count_interpretation_preserves_coherent_integers_and_rejects_inconsistency(self):
         values, changed, solutions = analysis.interpret_sisvan_counts(
             ["26", "62", "1.02", "1.108"], ["2.35%", "5.6%", "92.06%"], "110001")
         self.assertEqual(values, (26, 62, 1020, 1108))
@@ -381,11 +390,23 @@ class ResearchSnapshotTests(unittest.TestCase):
             ["1", "2", "7", "10"], ["10%", "20%", "70%"], "110001")
         self.assertEqual(values, (1, 2, 7, 10))
         self.assertFalse(changed)
-        self.assertEqual(solutions, 2)
+        self.assertEqual(solutions, 1)
+        values, changed, solutions = analysis.interpret_sisvan_counts(
+            ["0", "0", "6", "6"], ["-", "-", "100%"], "431725")
+        self.assertEqual(values, (0, 0, 6, 6))
+        self.assertFalse(changed)
+        self.assertEqual(solutions, 1)
         for counts in (["1", "2", "7", "11"], ["-1", "2", "7", "8"],
                        ["nan", "2", "7", "9"], ["1.00001", "2", "7", "10"]):
             with self.assertRaises(ValueError):
                 analysis.interpret_sisvan_counts(counts, ["10%", "20%", "70%"], "110001")
+
+    def test_coherent_integers_never_enter_the_scale_search(self):
+        with patch.object(analysis, "product", side_effect=AssertionError("Não extrapolar linha coerente")):
+            result = analysis.interpret_sisvan_counts(
+                ["9", "14", "246", "269"], ["3.35%", "5.2%", "91.45%"], "110003")
+        self.assertEqual(result, ((9, 14, 246, 269), False, 1))
+        self.assertTrue(self.base.sisvan_escalas_compativeis.eq(1).all())
 
 
 if __name__ == "__main__":

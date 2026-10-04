@@ -251,10 +251,10 @@ colunas próprias, com auditoria dos cortes e municípios que mudam de seleção
 
 - Preservar XLSX exatos e valores de células no CSV convertido de 12 colunas.
 - Guardar filtros, ano, idade, fase, data e hashes no sidecar.
-- Interpretar contagens no notebook por soma e percentuais oficiais; interromper
-  em inconsistência e registrar ambiguidades de escala. Adotar o menor total
-  compatível quando há múltiplas soluções; reconhecer limitações nos absolutos
-  e no mínimo de avaliações. A entrada não é reescrita.
+- Interpretar contagens no notebook por soma e percentuais oficiais. Inteiros
+  coerentes são mantidos, sem testar multiplicação uniforme por 1.000. A leitura
+  de decimais e de células inconsistentes é conciliada, exigindo solução única;
+  se não for possível, interromper para conferência. A entrada não é reescrita.
 - Calcular DAI somente na base analítica; não usar percentual combinado da fonte.
 - Tratar denominador zero como ausência de observações (`NaN`), não DAI zero.
 - Testar diferentes denominadores mínimos, com justificativa.

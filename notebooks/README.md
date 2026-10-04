@@ -23,6 +23,12 @@ mantém os nomes analíticos e os códigos municipais. DPI e dados de peso foram
 retirados de toda a análise, não somente dessas tabelas. A comparação regional
 utiliza apenas DAI. Flags são mantidas na exportação para auditoria.
 
+As tabelas exibidas usam o padrão brasileiro: contagens como `9.486` e `223`,
+índices como `0,401` e percentuais como `26,86%`. Ausências aparecem como `—`;
+códigos municipais permanecem como texto. A formatação é aplicada somente à
+visualização, sem converter valores em strings na base analítica e sem alterar
+entradas, cálculos ou CSVs exportados.
+
 ## Uso no Google Colab
 
 1. Baixar o `.ipynb` e abri-lo no Colab por **Arquivo → Abrir notebook → Upload**.
@@ -126,9 +132,16 @@ O SISVAN foi baixado novamente nas 27 UFs em 4 de outubro de 2026, usando o
 coletor atualizado, sem indicadores derivados. O CSV achata cabeçalhos do XLSX
 e preserva valores numéricos como aparecem nas células; os XLSX exatos ficam
 na camada bruta. A interpretação de contagens ocorre no notebook, por soma e
-percentuais; múltiplas escalas são sinalizadas e adota-se o menor total
-compatível. Essa ambiguidade pode afetar contagens e o mínimo de avaliações.
+percentuais. Inteiros que conferem são preservados sem criar uma alternativa
+uniforme ×1.000. A leitura de decimais e a conciliação de células inconsistentes
+continuam sendo verificadas, exigindo solução única.
 Ver [documentação da entrada](../dados/pesquisa/sisvan/README.md).
+
+Os detalhes da revisão numérica não aparecem no texto da apresentação nem nas
+linhas exibidas da tabela de qualidade. A auditoria continua nas exportações;
+a apresentação não lista municípios para aprovação individual. A decisão
+aprovada é não multiplicar linhas inteiras coerentes por 1.000. A hipótese
+artificial deixou de ser gerada, sem alterar os totais ou os 242 selecionados.
 
 A malha simplificada é uma cópia da API v4 do IBGE, com URL/data/hash próprios
 em [`dados/apoio/ibge/`](../dados/apoio/ibge/). A versão da API não expõe ano por

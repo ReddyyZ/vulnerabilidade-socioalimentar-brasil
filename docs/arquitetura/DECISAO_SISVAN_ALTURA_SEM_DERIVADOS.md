@@ -12,8 +12,9 @@ conjunta de altura/peso e uso complementar de DPI.
    fase, filtros, datas e hashes ficam no sidecar. Não calcular DAI no coletor.
 5. Remover geração automática do produto infantil combinado. Peso/IMC e
    agregações explícitas continuam disponíveis como funcionalidades opcionais.
-6. Interpretar contagens apenas na análise: conciliar soma e percentuais,
-   interromper em inconsistência e auditar múltiplas escalas compatíveis.
+6. Interpretar contagens apenas na análise: preservar inteiros coerentes sem
+   gerar alternativas uniformes ×1.000; conciliar soma e percentuais e exigir
+   solução única nas linhas inconsistentes. A leitura das células é auditada.
 7. Calcular DAI sem arredondamento no notebook; total zero produz ausência.
 8. Excluir DPI e dados de peso de todas as tabelas, gráficos, controles,
    correlações, resumos, dicionário e exportações da análise vigente.

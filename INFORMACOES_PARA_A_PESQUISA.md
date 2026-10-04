@@ -459,8 +459,10 @@ o produto automático combinado. XLSX exatos e produtos antigos são preservados
 O CSV achata cabeçalhos multinível e mantém contagens como aparecem nas células,
 inclusive decimais do exportador. Filtros e hashes ficam no sidecar. O notebook
 interpreta escalas, valida soma e percentuais e calcula DAI sem arredondamento,
-com ausência quando o total é zero. Múltiplas soluções são auditadas e adota-se
-o menor total coerente; a ambiguidade pode afetar contagens e mínimo de avaliações.
+com ausência quando o total é zero. Inteiros que já conferem com soma e
+percentuais são mantidos sem testar uma linha inteira multiplicada por 1.000.
+Essa hipótese artificial foi rejeitada pela pesquisa. Para as demais leituras,
+exige-se conciliação única ou interrupção para conferência na fonte.
 
 Ver [README da entrada SISVAN](dados/pesquisa/sisvan/README.md) e
 [decisão de arquitetura](docs/arquitetura/DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md).

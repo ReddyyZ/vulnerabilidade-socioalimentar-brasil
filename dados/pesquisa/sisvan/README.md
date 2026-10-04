@@ -54,18 +54,24 @@ linha de RO contém `26`, `62`, `1.02` e total `1.108`, correspondendo na
 interpretação analítica a 26, 62, 1.020 e 1.108. **Esses valores decimais não
 foram corrigidos na coleta nem neste CSV.**
 
-O notebook testa escalas compatíveis, exige soma das categorias igual ao total
-e concordância com percentuais oficiais com tolerância de 0,011 ponto percentual.
-Decimais são interpretados em milhares; inteiros admitem valor original ou
-×1.000. Sem solução, a análise é interrompida. Se há múltiplas soluções,
-adota-se o menor total compatível e registra-se a ambiguidade. Esta política
-conserva a interpretação da coleta histórica; não é confirmação independente
-da escala pelo Ministério da Saúde. A ambiguidade pode afetar números absolutos
-e elegibilidade pelo mínimo, embora escalas uniformes preservem o percentual.
+O notebook exige soma das categorias igual ao total e concordância com os
+percentuais oficiais com tolerância de 0,011 ponto percentual. **Inteiros
+coerentes são mantidos sem testar outra linha multiplicada por 1.000**,
+conforme decisão da pesquisa. Decimais são interpretados em milhares.
 
-Na nova coleta, 1.733 municípios exigem interpretação de escala; 3.837 têm
-mais de uma solução compatível. Consultar `interpretacao_sisvan.csv`, exportado
-pelo notebook, com células originais, contagens interpretadas e flags.
+Somente quando essa leitura não concilia soma e percentuais, tenta-se a
+interpretação de células específicas em que o exportador pode ter perdido
+zeros finais. Há sete linhas assim nesta coleta: por exemplo, uma célula `1`
+precisa ser lida como 1.000 para corresponder ao total e ao percentual da
+categoria. Essa conciliação já existia; não extrapola uma linha coerente inteira.
+Sem solução única, a análise é interrompida para conferência na fonte.
+
+Na nova coleta, 1.733 municípios exigem interpretação numérica de alguma célula.
+As alternativas artificiais dos 3.837 casos com inteiros coerentes deixaram de
+ser geradas; não representam erros confirmados na fonte. Os totais, DAI e
+seleção permaneceram iguais após essa alteração. Consultar
+`interpretacao_sisvan.csv`, exportado pelo notebook, com células originais,
+contagens interpretadas e flags. A entrada nunca é reescrita.
 
 DAI é calculado **somente no processamento analítico**:
 
