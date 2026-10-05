@@ -1,5 +1,82 @@
 # Notebook da pesquisa — sobreposição de critérios
 
+## Versão 3 — definição nutricional principal DAI + DPI
+
+Notebook: [01_sobreposicao_criterios_v3.ipynb](01_sobreposicao_criterios_v3.ipynb).
+A v2 e todas as entradas originais são preservadas. A v3 é uma cópia com ajustes
+delimitados, não uma reconstrução completa: mantém integração, verificações de
+integridade, cartografia, gráficos, tabelas, leitura SISVAN e exportações úteis.
+Continua autossuficiente para o Google Colab, com dados e código incorporados.
+
+A dimensão nutricional principal agora exige **DAI ≥6,7% e DPI ≥1,8%**, com
+**≥20 avaliações em cada relatório**, para menores de cinco anos em 2025.
+Social e alimentar permanecem IVS ≥0,401 **e** IDHM <0,600; CadInsan ≥P75
+nacional no cenário `com_PBF`. Trata-se de adaptação dos precedentes do Mapa
+InSAN, não reprodução de seu público exclusivo PBF ou de sua clusterização.
+
+`dim_nutricional_dai` e `convergencia_total_dai` preservam DAI isolado como
+alternativa mais abrangente, inclusive nos cenários de sensibilidade. A seleção
+principal é `convergencia_total`, usando DAI + DPI. Sem informação suficiente
+em qualquer componente obrigatório, a dimensão e a classificação geral ficam
+ausentes, nunca negativas. O mínimo aplica-se separadamente a altura e peso.
+
+`classe_convergencia` substitui a linguagem normativa de prioridade, com
+0/1/2/3 dimensões desfavoráveis e dados insuficientes. Zero não indica ausência
+de vulnerabilidade. Não há ranking, escore, novos modelos ou dimensão CadÚnico.
+O denominador familiar do próprio CadInsan continua necessário; o JSON de
+contagem de pessoas não entra no notebook ou nas exportações.
+
+Cobertura: 5.571 unidades municipais, 5.561 avaliáveis, 10 insuficientes.
+Principal DAI + DPI: **508**, ou **9,14% dos elegíveis**; alternativa DAI: **548**
+(diferença de 40). Classes 0/1/2/3: 1.488 / 2.271 / 1.294 / 508.
+Contagens dimensionais entre seus próprios classificáveis: social 1.302,
+alimentar 1.393, nutricional 3.693; no universo comum elegível: 1.302 / 1.391 / 3.690.
+Esses números são referências da execução padrão, não valores inseridos no código.
+
+Convergência / elegíveis da região: Nordeste 371/1.794 (20,68%), Norte 123/449
+(27,39%), Sudeste 10/1.668 (0,60%), Centro-Oeste 3/466 (0,64%), Sul 1/1.184 (0,08%).
+Maior concentração absoluta no Nordeste; maior proporção no Norte.
+
+Sensibilidade de uma mudança por vez, mantendo DPI fixo em 1,8%:
+
+- CadInsan P70/P75/P80/P90: 589 / 508 / 445 / 261.
+- Mínimo altura e peso 20/50/100: 508 / 508 / 507.
+- DAI 6,7%/10%/P75: 508 / 373 / 237.
+
+Os mínimos têm comparativamente pouco efeito neste conjunto; cortes CadInsan
+e DAI afetam substancialmente os resultados. As 72 combinações completas
+variam entre 133 e 627, informação secundária, não intervalo de confiança.
+O percentual CadInsan exato é mantido: usar o percentual arredondado do CSV,
+recalculando o quantil, muda o lado do corte alimentar em quatro municípios,
+e a convergência final em um (509 em vez de 508).
+
+As seis ausências IVS/IDHM são identificadas nos dados e documentadas com
+fontes oficiais. [IBGE — MUNIC 2013](https://ftp.ibge.gov.br/Perfil_Municipios/2013/nota_tecnica2013.pdf)
+confirma a instalação em 2013 de Mojuí dos Campos, Pescaria Brava, Balneário
+Rincão, Pinto Bandeira e Paraíso das Águas. [IBGE — novo município](https://educa.ibge.gov.br/criancas/voce-sabia/22741-novo-municipio.html)
+confirma Boa Esperança do Norte em 1º/1/2025 e a contagem de 5.569 municípios
+mais Brasília e Fernando de Noronha: 5.571 unidades estatísticas. A ausência
+na referência 2010 é compatível com a diferença temporal, não automaticamente
+erro de merge. Não são imputados índices dos municípios de origem.
+
+Resultados separados em `resultados_sobreposicao_v3/resultados/execucao_<data>/`:
+31 CSVs (incluindo a tabela documental de ausência IVS/IDHM), 12 figuras PNG/SVG,
+síntese, manifesto JSON e ZIP. Os mapas principais utilizam DAI + DPI;
+a comparação DAI isolado permanece tabular para evitar duplicação visual.
+
+```bash
+python -m scripts.gerar_notebook_sobreposicao_v3
+python -m unittest discover -s tests -v
+python -m scripts.executar_notebook_sobreposicao_v3 /tmp/sessao-analise-v3
+```
+
+Gerar novamente limpa somente os outputs da v3; executar os restaura. O executor
+valida as duas versões anteriores, células em ordem, ausência de traceback,
+figuras, CSVs, definição nutricional conjunta e tratamento de dados insuficientes.
+IVS/IDHM históricos, cobertura SISVAN não probabilística, variabilidade de
+denominadores e P75 exploratório continuam exigindo interpretação científica
+cuidadosa e discussão com o orientador; convergência não estabelece causalidade.
+
 ## Versão 2 — três dimensões
 
 Notebook atualizado: [01_sobreposicao_criterios_v2.ipynb](01_sobreposicao_criterios_v2.ipynb).
