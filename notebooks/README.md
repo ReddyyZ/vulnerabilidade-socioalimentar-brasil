@@ -1,5 +1,66 @@
 # Notebook da pesquisa — sobreposição de critérios
 
+## Versão 2 — três dimensões
+
+Notebook atualizado: [01_sobreposicao_criterios_v2.ipynb](01_sobreposicao_criterios_v2.ipynb).
+O arquivo original abaixo é preservado como versão anterior; a descrição de seus
+critérios não deve ser confundida com a metodologia da v2.
+
+A v2 é autossuficiente para apresentação e execução no Colab. Incorpora quatro
+entradas: IVS/IDHM, CadInsan, SISVAN Altura X Idade e SISVAN Peso X Idade.
+Não lê nem incorpora o JSON de contagem de pessoas no CadÚnico. O denominador
+de famílias do próprio CSV CadInsan é mantido como `familias_cadinsan`.
+Nenhuma base original foi modificada.
+
+A seleção principal identifica convergência de **três dimensões**:
+
+- Social: IVS ≥0,401 **e** IDHM <0,600, dentro da mesma dimensão.
+- Alimentar: CadInsan ≥P75 nacional (`com_PBF`), corte exploratório, não oficial.
+- Nutricional: DAI ≥6,7%, com pelo menos **20 avaliações de altura**.
+
+DAI e DPI são calculados a partir das categorias do SISVAN para menores de cinco
+anos, em 2025, com denominadores separados. DPI é complementar; a alternativa
+DAI ≥6,7% **e** DPI ≥1,8%, com mínimos em ambos os relatórios, é apresentada
+sem substituir a análise principal. As referências nutricionais se inspiram nos
+critérios do Mapa InSAN, não reproduzem seu público exclusivo PBF ou sua
+clusterização. As faixas OMS do DAI têm função descritiva.
+
+A classificação conta 0/1/2/3 dimensões; informação insuficiente permanece
+ausente nas flags e recebe categoria própria. DPI ausente não inviabiliza a
+seleção principal. Os rótulos não representam diagnóstico oficial ou ranking.
+Sensibilidade: CadInsan P70/P75/P80/P90, mínimos 20/50/100, DAI 6,7%/10%/P75,
+nos cenários com/sem efeito do PBF, incluindo entradas/saídas e Jaccard.
+
+O peso utiliza a coleta já existente em
+`dados/tratados/sisvan/peso_por_idade/`, consolidada em 4/10/2026 pela manhã;
+a altura utiliza a coleta de 4/10/2026 à tarde em `dados/pesquisa/sisvan/`.
+Ambas têm ano e recorte etário idênticos. Não se usa a antiga base combinada
+nem seus percentuais derivados. As verificações numéricas já existentes são
+preservadas, sem acrescentar comparação sistemática DAI contagens versus
+percentuais oficiais.
+
+Resultados da v2: `resultados_sobreposicao_v2/resultados/execucao_<data>/`.
+São gerados 30 CSVs, 12 figuras em PNG/SVG, síntese, manifesto e ZIP. O notebook
+mostra a lista por UF/nome, sem ordenação por risco; CSV completo preserva
+municípios sem classificação. O percentual nacional usa o universo explícito
+da malha IBGE incorporada, além do percentual entre elegíveis.
+
+Código e reprodução local:
+
+```bash
+python -m scripts.gerar_notebook_sobreposicao_v2
+python -m unittest discover -s tests -v
+python -m scripts.executar_notebook_sobreposicao_v2 /tmp/sessao-analise-v2
+```
+
+O gerador reutiliza os auxiliares de leitura e cartografia da v1, incorporando
+apenas os necessários no notebook (sem dependência de imports do projeto).
+O executor valida células em ordem, ausência de traceback, produtos e
+preservação do notebook original. Gerar novamente remove os outputs da v2;
+executar novamente os restaura.
+
+## Versão 1 — preservada
+
 Arquivo: [01_sobreposicao_criterios.ipynb](01_sobreposicao_criterios.ipynb).
 
 ## Apresentação ao laboratório
