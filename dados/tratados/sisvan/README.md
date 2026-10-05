@@ -2,8 +2,9 @@
 
 Esta pasta contém os produtos consolidados da coleta municipal do Relatório Público do SISVAN. Os arquivos oficiais originais são preservados separadamente em `dados/brutos/sisvan/`.
 
-A documentação completa da base principal de crianças menores de 5 anos está em
-[`criancas_menores_5/README.md`](criancas_menores_5/README.md).
+A documentação do produto histórico combinado de crianças menores de 5 anos está em
+[`criancas_menores_5/README.md`](criancas_menores_5/README.md). Esse produto derivado
+não é gerado automaticamente nem utilizado como entrada do notebook v3.
 
 ## Recorte padrão
 
@@ -16,26 +17,29 @@ A configuração padrão está em `configuracoes/sisvan/coletas.json` e coleta:
 - índices: altura por idade e peso por idade;
 - sexo, raça/cor, origem, povo/comunidade e escolaridade: todos.
 
+Esse padrão atende às duas entradas nutricionais do notebook v3. DAI, DPI e
+o mínimo de avaliações são calculados/aplicados somente na análise.
+
 ## Produtos nacionais já preservados
 
 - `imc_por_idade/sisvan_municipios_imc_por_idade_0_a_menor_5_anos_2025.csv`;
 - `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv`;
+- `peso_por_idade/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_2025.csv`;
 - `sisvan_municipios_consultas_combinadas_2025.csv`, em formato longo.
 
 Esses arquivos anteriores de IMC permanecem preservados. Uma nova execução da
 configuração padrão passa a gerar:
 
 - `altura_por_idade/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_<ano>.csv`;
-- `peso_por_idade/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_<ano>.csv`;
-- `criancas_menores_5/indicadores_altura_peso_idade_menores_5_<ano>.csv`.
+- `peso_por_idade/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_<ano>.csv`.
 
 Cada CSV possui um arquivo `.metadados.json` correspondente, com os parâmetros da consulta, colunas, UFs e estatísticas de validação.
 
 Os CSVs individuais por índice são consolidações dos relatórios estaduais. O
-processo apenas achata o cabeçalho de dois níveis, normaliza as contagens que o
-XLSX representa com ponto de milhar e reúne as UFs. Indicadores calculados
-aparecem somente no produto identificado como derivado em
-`criancas_menores_5/`.
+processo atual apenas achata o cabeçalho de dois níveis e reúne as UFs,
+preservando os valores das células e os percentuais oficiais, sem normalizar
+escalas ou acrescentar DAI/DPI. Os indicadores nutricionais são calculados
+no notebook; os produtos derivados históricos permanecem preservados.
 
 ## Camada bruta
 
@@ -68,17 +72,15 @@ O atalho histórico na raiz continua disponível:
 python3 coletar_sisvan_municipios.py
 ```
 
-Quando as duas consultas padrão terminam, o coletor cria automaticamente um
-produto analítico municipal com:
+A execução padrão gera **dois CSVs separados**, com todas as categorias
+oficiais e `Total` de cada relatório, além dos respectivos metadados. Não gera
+automaticamente uma base combinada, DAI, DPI ou filtragem por mínimo de avaliações.
+As opções explícitas de concatenação, soma de faixas e harmonização continuam
+disponíveis; esses produtos são adicionais e não substituem os CSVs individuais.
 
-- todas as categorias oficiais de `ALTURA X IDADE`;
-- todas as categorias oficiais de `PESO X IDADE`;
-- déficit de estatura, calculado pela soma de altura muito baixa e altura baixa;
-- déficit de peso para idade, calculado pela soma de peso muito baixo e peso baixo;
-- um denominador próprio para cada índice.
-
-Os dois déficits não são somados: os relatórios agregados não informam quais
-crianças aparecem simultaneamente nas duas classificações.
+Para consultar somente um indicador, usar `--indices altura_por_idade` ou
+`--indices peso_por_idade`. Uma nova coleta não atualiza automaticamente o
+pacote de dados incorporado no notebook v3; isso exige uma etapa separada.
 
 ## Listar índices e faixas disponíveis
 

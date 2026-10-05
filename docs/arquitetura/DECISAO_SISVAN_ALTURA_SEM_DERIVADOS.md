@@ -1,4 +1,10 @@
-# Decisão vigente: SISVAN de altura sem indicadores derivados na entrada
+# Decisão histórica: SISVAN de altura sem indicadores derivados na entrada
+
+**Registro da etapa de 4/10/2026, correspondente à análise v1.** O perfil
+vigente de coleta foi atualizado para altura e peso por idade em 5/10/2026,
+sem cálculo de DAI/DPI no coletor. A definição nutricional da v3 e o novo padrão
+estão em [DECISAO_SISVAN_ALTURA_PESO_NOTEBOOK_V3.md](DECISAO_SISVAN_ALTURA_PESO_NOTEBOOK_V3.md).
+O texto abaixo preserva a decisão histórica, não as regras atuais da análise.
 
 Decisão aprovada em 4 de outubro de 2026. Substitui o perfil anterior de coleta
 conjunta de altura/peso e uso complementar de DPI.

@@ -114,7 +114,7 @@ Essa é a estrutura de destino. A adoção deverá preservar arquivos e diretór
 
 O projeto coleta e preserva as seguintes famílias de dados:
 
-1. **Crianças:** somente altura por idade no padrão; peso e IMC por idade como opções explícitas preservadas;
+1. **Crianças:** altura por idade e peso por idade no padrão, em `0 a < 5 anos`; IMC por idade como opção explícita preservada;
 2. **Adolescentes:** IMC por idade e altura por idade;
 3. **Adultos:** IMC;
 4. **Idosos:** IMC;
@@ -134,6 +134,9 @@ Exemplo conceitual de configuração:
 sisvan:
   indices:
     - nome: altura_por_idade
+      faixas_etarias:
+        - 0_a_menor_5_anos
+    - nome: peso_por_idade
       faixas_etarias:
         - 0_a_menor_5_anos
 ```
@@ -293,9 +296,10 @@ A base analítica deverá:
 
 ## 8. Indicadores nutricionais planejados
 
-### 8.1 Altura por idade: indicador principal
+### 8.1 Altura por idade: componente da dimensão nutricional principal
 
-Para crianças de 0 a menos de 5 anos, o desfecho nutricional principal será a prevalência de déficit de estatura:
+Para crianças de 0 a menos de 5 anos, o déficit de estatura (DAI) compõe a
+dimensão nutricional principal junto ao déficit de peso (DPI) no notebook v3:
 
 ```text
 Déficit de estatura (%) =
@@ -311,11 +315,13 @@ normalizar escalas; filtros ficam no sidecar. A análise interpreta contagens
 por soma e percentuais, preserva inteiros coerentes sem hipótese uniforme
 ×1.000, exige solução única para inconsistências e calcula DAI sem arredondar.
 
-### 8.2 Peso por idade: funcionalidade opcional, fora da análise vigente
+### 8.2 Peso por idade: segundo componente nutricional principal
 
-O coletor mantém consultas explícitas de peso, mas não as executa por padrão.
-A análise vigente exclui DPI integralmente. A fórmula abaixo registra apenas
-uma possibilidade para outro estudo, não um produto automático:
+O coletor executa peso por idade por padrão no mesmo recorte da altura, mas
+não calcula DPI. O notebook v3 calcula a fórmula abaixo e exige DAI ≥6,7% e
+DPI ≥1,8%, com pelo menos 20 avaliações em cada relatório, na definição
+nutricional principal. DAI isolado permanece como alternativa de comparação.
+O mínimo não filtra os CSVs coletados; é aplicado somente na análise.
 
 ```text
 Déficit de peso para idade (%) =
@@ -473,9 +479,9 @@ O projeto deverá produzir, no mínimo:
 
 1. arquivos brutos independentes para cada consulta;
 2. manifesto completo das coletas;
-3. CSV convertido de altura por idade para menores de 5 anos, sem derivados;
+3. CSVs separados de altura por idade e peso por idade para menores de 5 anos, sem derivados;
 4. sidecar com filtros, proveniência e hashes dos XLSX e do CSV;
-5. DAI calculado no notebook e auditoria de interpretação de contagens;
+5. DAI e DPI calculados no notebook e auditoria de interpretação de contagens;
 6. consolidados opcionais de IMC por idade e da visão geral por fases;
 7. relatório de cobertura e qualidade do SISVAN;
 8. bases tratadas de IVS, IDHM e CadÚnico;
@@ -489,13 +495,13 @@ O projeto deverá produzir, no mínimo:
 ## 14. Decisões de implementação
 
 - [x] Enumerar as faixas etárias oficiais disponíveis no SISVAN para cada índice.
-- [x] Definir 0 a menos de 5 anos para altura; outros índices apenas opcionais.
+- [x] Definir 0 a menos de 5 anos para altura e peso por idade; IMC permanece opcional.
 - [x] Confirmar os filtros constantes entre as consultas.
 - [x] Definir 2025 e todos os municípios do Brasil como recorte inicial.
 - [x] Definir a convenção de nomes dos arquivos.
 - [x] Definir o formato CSV e o esquema do manifesto.
 - [x] Reutilizar arquivos brutos e exigir `--force` para sobrescrita explícita.
-- [x] Adotar mínimo exploratório de 100 avaliações de altura, com sensibilidade.
+- [x] Aplicar no notebook v3 mínimo de 20 avaliações em cada relatório de altura e peso, com sensibilidade para 50 e 100; não filtrar a coleta.
 - [ ] Definir a fonte do denominador utilizado no cálculo de cobertura.
 - [x] Validar os esquemas oficiais de altura, peso e IMC por idade.
 - [x] Manter denominadores separados para altura por idade e peso por idade.
@@ -513,14 +519,14 @@ O projeto deverá produzir, no mínimo:
 7. gerar um arquivo bruto por combinação de parâmetros;
 8. implementar verificações automáticas de integridade e conteúdo;
 9. criar CSV por consulta sem derivados; preservar o produto infantil antigo;
-10. interpretar contagens e calcular DAI somente na análise do notebook;
+10. interpretar contagens e calcular DAI/DPI somente na análise do notebook;
 11. integrar as demais fontes somente após a aprovação das bases individuais.
 
 ## 16. Critério de aceite da arquitetura
 
-A implementação estará de acordo com esta arquitetura quando somente altura
-por idade for coletada por padrão em `0 a < 5 anos`, peso/IMC permanecerem
-opcionais e, para cada consulta, for possível:
+A implementação estará de acordo com esta arquitetura quando altura e peso
+por idade forem coletados por padrão em `0 a < 5 anos`, IMC permanecer
+opcional e, para cada consulta, for possível:
 
 - reproduzir os parâmetros utilizados;
 - localizar o arquivo bruto correspondente;
@@ -530,7 +536,9 @@ opcionais e, para cada consulta, for possível:
 - reconstruir o consolidado por meio de código;
 - rastrear cada valor analítico até a fonte original.
 
-A entrada ativa não terá indicadores derivados. DAI será calculado no notebook,
-e DPI estará ausente da análise. A nova coleta deverá ter diretório e manifesto
-próprios, sem sobrescrever as versões anteriores. A decisão e os detalhes de
-fidelidade estão em [DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md](DECISAO_SISVAN_ALTURA_SEM_DERIVADOS.md).
+A entrada não terá indicadores derivados. DAI e DPI serão calculados no notebook,
+com denominadores próprios. Novas coletas deverão ter diretórios e manifestos
+próprios para preservar versões anteriores. A atualização do padrão não executa
+coleta nem altera automaticamente os dados incorporados no notebook v3.
+A decisão vigente está em
+[DECISAO_SISVAN_ALTURA_PESO_NOTEBOOK_V3.md](DECISAO_SISVAN_ALTURA_PESO_NOTEBOOK_V3.md).

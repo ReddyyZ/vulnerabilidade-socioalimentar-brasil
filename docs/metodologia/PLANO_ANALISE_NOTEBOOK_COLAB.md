@@ -2,6 +2,12 @@
 
 **Data do planejamento:** 4 de outubro de 2026.
 
+**Registro histórico da estratégia inicial (v1).** Os critérios e a coleta
+descritos abaixo correspondem àquela etapa. A análise atual utiliza a
+[v3](../../notebooks/README.md), com DAI + DPI na dimensão nutricional
+principal; o padrão do coletor é altura e peso por idade, sem derivados.
+O planejamento original permanece preservado para rastreabilidade.
+
 **Status:** estratégia inicial implementada no
 [notebook de sobreposição](../../notebooks/01_sobreposicao_criterios.ipynb).
 Este documento preserva o planejamento discutido. A implementação usa

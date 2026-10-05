@@ -1,8 +1,10 @@
 # Base SISVAN — Altura por idade e peso por idade em crianças menores de 5 anos
 
-**Produto histórico preservado, fora da análise vigente.** A nova entrada
-contém somente altura, sem DAI pré-calculado, e está documentada em
-[dados/pesquisa/sisvan/README.md](../../../pesquisa/sisvan/README.md).
+**Produto histórico preservado, fora da análise vigente.** O notebook v3
+utiliza CSVs separados de altura e peso por idade e calcula DAI/DPI na análise,
+sem utilizar os indicadores derivados deste produto. A entrada de altura está
+documentada em [dados/pesquisa/sisvan/README.md](../../../pesquisa/sisvan/README.md)
+e a metodologia vigente em [notebooks/README.md](../../../../notebooks/README.md).
 O coletor atualizado não gera mais automaticamente este produto combinado;
 os comandos deste documento descrevem o comportamento histórico.
 

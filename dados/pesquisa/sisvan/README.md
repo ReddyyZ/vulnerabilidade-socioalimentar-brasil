@@ -105,9 +105,15 @@ python -u coletar_sisvan_municipios.py --force \
 ```
 
 Para nova coleta futura, escolher um identificador novo nas três saídas, para
-não sobrescrever esta versão. O padrão em `configuracoes/sisvan/coletas.json`
-é somente altura por idade, 2025, menores de cinco anos. Peso e IMC permanecem
-opções explícitas, sem gerar automaticamente DAI/DPI nem produto combinado.
+não sobrescrever esta versão. O comando acima registra a execução com a
+configuração de altura isolada vigente em 4/10/2026; para reproduzir somente
+esse recorte com o padrão atual, acrescentar `--indices altura_por_idade`.
+
+Desde 5/10/2026, o padrão em `configuracoes/sisvan/coletas.json` coleta altura
+e peso por idade, 2025, menores de cinco anos, em dois CSVs separados, para
+atender ao notebook v3. IMC permanece opcional; não se gera automaticamente
+DAI/DPI ou produto combinado. Essa mudança não modifica o arquivo de altura
+documentado aqui nem atualiza os dados incorporados nos notebooks existentes.
 
 A antiga cópia de altura/peso foi movida, sem alteração, para
 `dados/historico/pesquisa_sisvan_altura_peso_2025/`; os produtos antigos de

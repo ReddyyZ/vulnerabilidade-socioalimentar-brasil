@@ -4,8 +4,10 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from openpyxl import Workbook
 
@@ -86,20 +88,79 @@ class SisvanCollectorTests(unittest.TestCase):
             self.assertEqual(query.indicator.code, "1")
             self.assertEqual(query.indicator.categories, expected)
 
-    def test_configuracao_padrao_usa_apenas_altura_menores_5(self):
-        args = SimpleNamespace(
-            config=ROOT / "configuracoes/sisvan/coletas.json",
-            year=None, fases=None, indices=None, faixas_etarias=None,
-            todas_faixas=False, todas_idades_infantis=False,
-            populacao_geral=False, incluir_gestantes=False,
-        )
+    def default_args(self, *options):
+        return collector.build_parser().parse_args([
+            "--config", str(ROOT / "configuracoes/sisvan/coletas.json"), *options,
+        ])
+
+    def test_configuracao_padrao_usa_altura_e_peso_menores_5(self):
+        args = self.default_args()
         queries = collector.resolve_queries(args)
+        self.assertEqual(len(queries), 2)
         self.assertEqual(
             {(item.indicator.key, item.age_range.key) for item in queries},
             {
                 ("altura_por_idade", "0_a_menor_5_anos"),
+                ("peso_por_idade", "0_a_menor_5_anos"),
             },
         )
+        for query in queries:
+            self.assertEqual(query.year, 2025)
+            self.assertEqual(query.phase.key, "crianca")
+            self.assertEqual((query.age_range.start, query.age_range.end), ("0", "5"))
+        self.assertEqual(len(collector.selected_states(args.ufs)), 27)
+        for flag in (args.arquivo_unico, args.somar_faixas, args.harmonizar, args.populacao_geral):
+            self.assertFalse(flag)
+        outputs = [collector.output_path(args, q, collector.selected_states(args.ufs), len(queries)) for q in queries]
+        self.assertEqual(len(set(outputs)), 2)
+        self.assertEqual({p.parent.name for p in outputs}, {"altura_por_idade", "peso_por_idade"})
+
+    def test_indice_explicito_substitui_as_duas_consultas_padrao(self):
+        for index in ("altura_por_idade", "peso_por_idade"):
+            with self.subTest(index=index):
+                queries = collector.resolve_queries(self.default_args("--indices", index))
+                self.assertEqual(len(queries), 1)
+                self.assertEqual(queries[0].indicator.key, index)
+                self.assertEqual(queries[0].age_range.key, "0_a_menor_5_anos")
+
+    def test_ano_faixas_e_ufs_explicitos_continuam_configuraveis(self):
+        args = self.default_args("--year", "2024", "--faixas-etarias", "0-5,5-10", "--ufs", "RO,AC")
+        queries = collector.resolve_queries(args)
+        self.assertEqual(len(queries), 4)
+        self.assertEqual({q.year for q in queries}, {2024})
+        self.assertEqual({q.age_range.key for q in queries}, {"0_a_menor_5_anos", "5_a_menor_10_anos"})
+        self.assertEqual({q.indicator.key for q in queries}, {"altura_por_idade", "peso_por_idade"})
+        self.assertEqual(collector.selected_states(args.ufs), [("RO", "11"), ("AC", "12")])
+
+    def test_simulacao_padrao_nao_inicia_rede_nem_grava_produtos(self):
+        output = io.StringIO()
+        arguments = ["coletar_sisvan.py", "--config", str(ROOT / "configuracoes/sisvan/coletas.json"), "--dry-run"]
+        with patch.object(sys, "argv", arguments), redirect_stdout(output), \
+                patch.object(helper, "new_session") as session, \
+                patch.object(collector, "Manifest") as manifest, \
+                patch.object(collector, "write_csv") as writer:
+            collector.main()
+        self.assertIn("CRIANÇA | ALTURA X IDADE | 0 a < 5 anos | 2025", output.getvalue())
+        self.assertIn("CRIANÇA | PESO X IDADE | 0 a < 5 anos | 2025", output.getvalue())
+        session.assert_not_called()
+        manifest.assert_not_called()
+        writer.assert_not_called()
+
+    def test_ambas_entradas_padrao_preservam_categorias_sem_dai_dpi(self):
+        for query, counts, width in zip(collector.resolve_queries(self.default_args()), ([1, 2, 7], [1, 2, 6, 1]), (12, 14)):
+            with self.subTest(index=query.indicator.key), tempfile.TemporaryDirectory() as directory:
+                rows, schema = collector.parse_export(self.workbook(query.indicator, counts), "RO", query.indicator)
+                stats = collector.validate(rows, schema)
+                path = Path(directory) / (query.indicator.key + ".csv")
+                collector.write_csv(path, rows, schema.columns)
+                meta = collector.metadata_path(path)
+                collector.write_metadata(meta, query, path, stats, [("RO", "11")], schema)
+                self.assertEqual(len(schema.columns), width)
+                self.assertEqual(rows[0]["Total"], sum(counts))
+                self.assertTrue(all(rows[0][category + " - Quantidade"] == count
+                                    for category, count in zip(query.indicator.categories, counts)))
+                self.assertFalse(any("déficit" in c.lower() or c.lower() in {"dai", "dpi"} for c in schema.columns))
+                self.assertEqual(json.loads(meta.read_text())["indicadores_derivados"], [])
 
     def test_payload_recebe_indice_e_faixa(self):
         payload = helper.report_payload(2025, "11", "3", "5", "10")
