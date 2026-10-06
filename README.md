@@ -14,93 +14,36 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 ## Estratégia e indicadores
 
-```text
-CadInsan (%) = 100 × famílias em risco no cenário / famílias no universo CadInsan
-DAI (%) = 100 × (Altura Muito Baixa + Altura Baixa) / Total de Altura X Idade
-DPI (%) = 100 × (Peso Muito Baixo + Peso Baixo) / Total de Peso X Idade
-```
+### Indicadores utilizados
 
-| Dimensão    | Critério principal                                                           |
-| ----------- | ---------------------------------------------------------------------------- |
-| Social      | IVS ≥0,401**e** IDHM <0,600                                                  |
-| Alimentar   | CadInsan ≥P75 nacional, cenário`com_PBF`                                     |
-| Nutricional | DAI ≥6,7%**e** DPI ≥1,8%, com pelo menos 20 avaliações em **cada** relatório |
+- **IVS:** vulnerabilidade das condições de vida; valores maiores indicam maior vulnerabilidade social.
+- **IDHM:** desenvolvimento humano em longevidade, educação e renda; valores menores indicam menor desenvolvimento.
+- **CadInsan (%):** percentual de famílias do Cadastro Único com risco alimentar estimado, considerando o efeito do Programa Bolsa Família (PBF).
+- **DAI (%):** percentual de crianças avaliadas com altura baixa ou muito baixa para a idade.
+- **DPI (%):** percentual de crianças avaliadas com peso baixo ou muito baixo para a idade.
 
-O P75 é calculado entre municípios com CadInsan válido e denominador positivo,
-antes de aplicar os outros critérios; empates no corte são incluídos.
-`com_PBF` e `sem_PBF` são cenários considerando/desconsiderando o efeito do PBF
-na renda, não grupos disjuntos de beneficiários e não beneficiários.
+### Dimensões e critérios
 
-A seleção principal exige as três dimensões. Ausências ou denominadores
-insuficientes permanecem ausentes, mesmo quando outro componente é negativo.
-A contagem de zero a três dimensões só existe para unidades inteiramente
-classificáveis. Zero não significa ausência comprovada de vulnerabilidade.
+| Dimensão | O que representa | Critério adotado |
+|---|---|---|
+| Social | Vulnerabilidade estrutural e baixo desenvolvimento humano | IVS ≥0,401 **e** IDHM <0,600 |
+| Alimentar | Concentração municipal de risco alimentar estimado | CadInsan ≥P75 nacional, cenário `com_PBF` |
+| Nutricional | Déficits de crescimento em crianças menores de cinco anos acompanhadas pelo SISVAN | DAI ≥6,7% **e** DPI ≥1,8%; mínimo de 20 avaliações em cada relatório |
 
-Os cortes nutricionais e o mínimo de avaliações são referências adaptadas do
-[Mapa InSAN 2017–2022](https://www.gov.br/mds/pt-br/Sisan/monitoramento-da-san/MapaInSAN_20172022.pdf).
-Este experimento usa o recorte SISVAN de 2025, não filtra exclusivamente crianças
-beneficiárias do PBF e não reproduz a clusterização desse estudo. O mínimo de
-20 é uma escolha metodológica, não garantia de precisão ou representatividade.
+Os cortes sociais correspondem às faixas alta/muito alta do IVS e baixa/muito
+baixa do IDHM. Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliações
+foram adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11).
+Esses percentuais correspondem às prevalências nacionais estimadas pela
+Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
+O P75 (75º percentil nacional) é uma escolha exploratória, não um corte oficial.
 
-DAI isolado é uma alternativa comparativa, não a seleção principal. O notebook
-inclui 72 cenários de sensibilidade: CadInsan P70/P75/P80/P90; mínimos 20/50/100
-em cada relatório; DAI 6,7%/10%/P75; cenários `com_PBF`/`sem_PBF`.
-DPI permanece em 1,8% e os cortes sociais são fixos.
-A estabilidade é uma fração de cenários, não uma probabilidade.
+### Análise realizada
 
-As faixas descritivas DAI da OMS são <2,5%; 2,5–<10%; 10–<20%; 20–<30%; ≥30%.
-Não substituem o corte de seleção. Correlações de Spearman utilizam pares
-disponíveis, com seus tamanhos informados, e não demonstram causalidade.
-Percentuais de seleção regional usam os elegíveis da própria região;
-DAI/DPI agregados são razões de somas, não médias simples dos percentuais.
-
-### Altura, peso e limitações
-
-O déficit de altura para idade sinaliza comprometimento do crescimento
-geralmente crônico e acumulado: é relevante para investigar privação persistente
-junto à vulnerabilidade social estrutural. Não comprova isoladamente insegurança
-alimentar domiciliar nem uma causa específica.
-
-Peso por idade pode refletir baixa estatura, déficit ponderal ou ambos; não
-identifica exclusivamente magreza aguda. Baixo peso não é sinônimo de magreza,
-e `Peso Elevado para a Idade` não equivale a diagnóstico de sobrepeso/obesidade.
-
-DAI e DPI têm denominadores próprios. Sua conjunção é municipal, não individual:
-não se sabe quantas crianças têm ambos os déficits, nem se os dois relatórios
-acompanham as mesmas crianças. Não somar seus totais como pessoas distintas.
-O SISVAN descreve o público acompanhado, não necessariamente toda a população.
-
-Os códigos são lidos como texto: seis dígitos no SISVAN e sete nas fontes sociais
-e na malha. A integração externa usa prefixos únicos de seis dígitos, verificando
-duplicidades e conflitos e preservando os códigos originais. Não imputa índices
-ou dígitos verificadores. As 5.571 unidades incluem municípios, Brasília e
-Fernando de Noronha; não são 5.571 municípios constitucionais.
-
-A comparação reúne referências de 2010 e 2025. Correspondência de códigos
-não garante fronteiras históricas equivalentes; a malha não informa seu ano.
-Os mapas são ilustrativos, sem inferência espacial formal.
-O notebook explicita os casos sem índices de 2010 e as demais limitações.
-
-### Formatos SISVAN
-
-Os XLSX são os arquivos obtidos da fonte. Nos CSVs, os cabeçalhos multinível
-foram achatados. As categorias oficiais permanecem separadas, com identificação
-territorial, quantidade, percentual e total; não há DAI/DPI adicionados.
-
-Há duas conversões históricas: altura conserva valores das células, incluindo
-artefatos decimais do exportador; peso veio de uma conversão anterior que conciliou
-contagens. Ambas são preservadas como utilizadas pelo experimento. Para ler:
-
-```python
-pd.read_csv(caminho, dtype="string", encoding="utf-8-sig", keep_default_na=False)
-```
-
-A leitura analítica concilia categorias, total e percentuais oficiais, com
-tolerância de 0,011 ponto percentual. Inteiros coerentes são mantidos, **sem
-multiplicação uniforme**. Decimais como `1.02` podem representar a escala do
-exportador; somente linhas inconsistentes tentam conciliar células truncadas,
-exigindo solução única. Inconsistência irresolvível interrompe a análise.
-Valores da fonte e auditoria são exportados; as entradas não são reescritas.
+As bases foram integradas por município para identificar a sobreposição
+simultânea das três dimensões. Foram analisados a distribuição territorial,
+mapas, correlações de Spearman e a sensibilidade aos critérios. A análise é
+exploratória, sem ranking ou inferência causal. Detalhes metodológicos,
+auditorias e limitações estão no [notebook](experimento.ipynb).
 
 ## Resultados
 
@@ -156,5 +99,4 @@ requirements.txt            dependências diretas para execução local
 - [CadInsan 2025/MDS](https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf).
 - [Relatórios públicos SISVAN](https://sisaps.saude.gov.br/sisvan/relatoriopublico/).
 - [IBGE — API de malhas v4](https://servicodados.ibge.gov.br/api/docs/malhas?versao=4).
-- [Mapa InSAN 2017–2022](https://www.gov.br/mds/pt-br/Sisan/monitoramento-da-san/MapaInSAN_20172022.pdf).
-- [OMS — indicadores nutricionais infantis](https://www.who.int/data/nutrition/nlis/info/malnutrition-in-children).
+- [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11): origem dos cortes nutricionais, baseados na PNDS 2006, e do mínimo de acompanhamentos.
