@@ -1,0 +1,58 @@
+{
+  "experimento": "sobreposicao_criterios",
+  "commit_antes_publicacao": "5817185",
+  "python": "3.13.12",
+  "parametros": {
+    "quantil_cadinsan": 0.75,
+    "corte_dai_pct": 6.7,
+    "corte_dpi_pct": 1.8,
+    "minimo_avaliados": 20,
+    "cenario_cadinsan": "com_PBF"
+  },
+  "resultados": {
+    "unidades": 5571,
+    "elegiveis": 5561,
+    "convergencia_principal": 508,
+    "convergencia_dai_isolado": 548,
+    "dados_insuficientes": 10
+  },
+  "csv_sha256": {
+    "base_municipal_final.csv": "d57df545fd92eb76e828f33e52d360716a88eba1ef18a12c5391ccbe16d1f1f4",
+    "comparacao_arredondamento.csv": "073138307e3a3cc755aab07b22bc70864bbc44b9dcef3a431137b8322f7c49be",
+    "comparacao_nutricional.csv": "df02a5073acb6b127b99d6b667d6461f59ead14a497e42bfbc6105ce21a8c77d",
+    "controle_geometria.csv": "75bcb0ded86ba2cb3aa353f377f04cd4ed49d2df92403d818ba95ee26d8a2194",
+    "controle_integracao.csv": "016f15b6be36f92dcf224ac54d2ae21d9fad0f3f6683fc615f218660501acfb6",
+    "correlacoes_spearman.csv": "67adad916b4137943d2a1a4f3147bf90212a549a8de7a161fb0928bece33bcc2",
+    "cortes.csv": "d54fc8b4da21029ec9a46638afb28e2185a0c889dcac9e6bc0793d87995b1345",
+    "cortes_percentuais_csv.csv": "22a86b03d1b48ad2152f1d29562143ec39a179bd0364f8f7dd2f4cef06f286f3",
+    "descritivas.csv": "846f87b29701534754f6741eae904f9eaaaf2b749e625792b208017a86129021",
+    "dicionario_variaveis.csv": "93863d3970501261219187e924472af722c492e34c4147da0dc7a6f5b784d156",
+    "estabilidade.csv": "5ed05e82945abfdc14c67d9c5543d9e29707a12ac859ee872d727dd9f89fb912",
+    "interpretacao_sisvan.csv": "e0243eceaba060f45943a501c718908f6df5ad6f7abb2cfbb08cb32f48798aec",
+    "municipios_convergencia_total.csv": "a6a9a2d6005e7e8d7de49b8ab5f5d9cc60be401286fc53e725ed501a7495fab1",
+    "municipios_sem_correspondencia.csv": "7c1f92edfb67eeaf882d4e138ca5e6eba28090965c36a232579462c3fd743c39",
+    "municipios_sem_ivs_idhm.csv": "a1211898fba4831f4906f9a1333df8abb213d5d19df23a2503335589f2bce989",
+    "n_pares_correlacao.csv": "36b6883ecb6d8e4c64ef2f69af7521435e23e0f9137090b6c7948d26d792eb6f",
+    "peso_insuficiente.csv": "a77ab92e576cad99e68a2b9c314e84ccd4226e04d4a3a00559f852b18e6ebabd",
+    "qualidade_sisvan.csv": "1c48b4d8cf717743735e1063d9c373eaac26359ed4964b773cb708f8ea30d367",
+    "resumo_classes.csv": "fb6c45b8edec7eb8fde4887028f079acb16f917f3bb89a0c46a48cb8659af8a6",
+    "resumo_nacional.csv": "32751bd663934dec54b7a478f3ef0041f474cd82c2406efbc15260a535e85956",
+    "resumo_oms.csv": "f5e03946748347353957b3c3a3600e1a366dd426af7f0022b04b093c08b39098",
+    "resumo_regional.csv": "bb3a13901bbeea44089bbae814f80d232d14c95e46b89d8458f56c4295d7af91",
+    "resumo_social.csv": "556e2c78c64adb3e9776dd3e968afc99833c1d0fe33572be3a3af168519dc1cc",
+    "resumo_uf.csv": "c2c7fb6ef22963592391542e1a68fbb72e874661d4bd02988f3885e909e6556f",
+    "sem_classificacao.csv": "09d3bbd3d63e0fa9da1fb03ac3a3a672db84fe41f9286fc33c4f8856627d915b",
+    "sensibilidade.csv": "7cd12c5a243020f0af5bac6997b295c7007ca60e00186e29c5930161a7de770c",
+    "sensibilidade_cadinsan.csv": "afc5fd32a0eb565855de4c82018f40eec5971d6ad69bc2bfb085ba0fed3ab10d",
+    "sensibilidade_dai.csv": "e9e0984362726d9012a1007ce68f262a508da0be4d289a270f7862b55198b646",
+    "sensibilidade_minimos.csv": "90a5b87eb81e90d612b7b2c05840fcd706d09dea66f97f659a9261592fe9987c",
+    "totais_nutricionais.csv": "53bcf68ef17eed3f3287beeb069befbb6419a77508d0c459a706059ae9d793ca",
+    "validacao_catalogo.csv": "b0fccf5226d5e3023239dee975b20ac2bcf2915c3aedd40660a75cd6ed45ca82"
+  },
+  "produtos": {
+    "csv": 31,
+    "png": 12,
+    "svg": 12
+  },
+  "nota": "CSV comparados byte a byte no ambiente de referência; datas, ZIP e metadados gráficos não têm igualdade binária exigida."
+}

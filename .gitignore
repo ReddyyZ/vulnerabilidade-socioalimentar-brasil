@@ -3,6 +3,14 @@ __pycache__/
 *.tmp
 .pytest_cache/
 .ipynb_checkpoints/
-resultados_sobreposicao/
-resultados_sobreposicao_v2/
 resultados_sobreposicao_v3/
+/resultados_experimento/
+/docs/
+/desenvolvimento/
+/tests/
+.venv/
+dados/coletas/
+resultados_reconstrucao/
+.aws/
+.codex/
+.agents/

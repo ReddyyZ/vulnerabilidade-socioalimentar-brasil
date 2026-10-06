@@ -21,7 +21,10 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-import coletar_sisvan_derivado as helper
+if __package__:
+    from . import sisvan_cliente as helper
+else:
+    import sisvan_cliente as helper
 
 
 UF_CODES = [
@@ -1155,6 +1158,12 @@ def write_summed_product(args, products, states, population_phase=False):
 
 
 def load_harmonization(path):
+    if path is None:
+        raise RuntimeError(
+            "--harmonizar e --populacao-geral exigem "
+            "--harmonization-config CAMINHO_JSON; "
+            "o coletor nao inclui um dicionario de harmonizacao padrao"
+        )
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -1583,11 +1592,11 @@ def build_parser():
     )
     parser.add_argument(
         "--harmonizar", action="store_true",
-        help="Cria bases harmonizadas por fase para os indices de IMC",
+        help="Cria bases harmonizadas de IMC; exige --harmonization-config",
     )
     parser.add_argument(
         "--populacao-geral", action="store_true",
-        help="Coleta 0-10, adolescentes, adultos e idosos e gera a base geral",
+        help="Gera a base geral de criancas, adolescentes, adultos e idosos; exige --harmonization-config",
     )
     parser.add_argument(
         "--incluir-gestantes", action="store_true",
@@ -1601,20 +1610,20 @@ def build_parser():
         "--arquivo-unico-output", type=Path,
         help="Caminho opcional do CSV unico; ativa --arquivo-unico",
     )
-    parser.add_argument("--raw-dir", type=Path, default=Path("dados/brutos/sisvan"))
+    parser.add_argument("--raw-dir", type=Path, default=Path("dados/coletas/sisvan/brutos"))
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("dados/tratados/sisvan"),
+        "--output-dir", type=Path, default=Path("dados/coletas/sisvan/convertidos"),
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument(
         "--manifest", type=Path,
-        default=Path("metadados/manifestos/sisvan_coletas.csv"),
+        default=Path("dados/coletas/sisvan/manifesto_coletas.csv"),
     )
     parser.add_argument(
         "--harmonization-config", type=Path,
-        default=Path("configuracoes/sisvan/harmonizacao_v1.json"),
+        help="Dicionario JSON fornecido pelo usuario para --harmonizar ou --populacao-geral; sem padrao",
     )
-    parser.add_argument("--debug-dir", type=Path, default=Path("debug/sisvan"))
+    parser.add_argument("--debug-dir", type=Path, default=Path("dados/coletas/sisvan/debug"))
     parser.add_argument("--delay", type=float, default=1.0)
     parser.add_argument("--connect-timeout", type=float, default=20.0)
     parser.add_argument("--read-timeout", type=float, default=180.0)
