@@ -1,0 +1,244 @@
+{
+  "catalog": {
+    "id": "coz_solidarias_data_catalog",
+    "title": "Catálogo de Dados — Cozinhas Solidárias",
+    "description": "Catálogo único com os metadados de todos os datasets usados no projeto Cozinhas Solidárias. Estrutura: coleções (por fonte institucional) e datasets indexados por id.",
+    "language": "pt-BR",
+    "status": "draft",
+    "created_at": "2026-07-07",
+    "updated_at": "2026-08-14",
+    "typing_reference": "src/data-source-static/dataCatalogue.ts",
+    "quality_notes": [
+      {
+        "id": "ibge_download_url_pending",
+        "severity": "low",
+        "message": "As URLs de origem de `geojs-100-mun`, `estados` e `municipios-nomes` apontam para o serviço do IBGE identificado pela propriedade `codarea`, mas o endpoint/parâmetros exatos do download original precisam ser confirmados por quem baixou os arquivos."
+      }
+    ]
+  },
+  "schema_version": "2.0.0",
+  "datasets": {
+    "municipios_ivs": {
+      "id": "municipios_ivs",
+      "collection_id": "ipea",
+      "slug": "municipios-ivs",
+      "title": "Índice de Vulnerabilidade Social por município (Atlas IVS, 2010)",
+      "description": "Todos os 5.565 municípios do Brasil com o Índice de Vulnerabilidade Social (IVS), seus subíndices e os índices IDHM, extraídos dos dados brutos do Atlas da Vulnerabilidade Social do IPEA. Recorte: ano 2010, nível município, totais de cor/sexo/situação de domicílio. Alimenta as variantes coropléticas do mapa — IVS geral e seus três subíndices (infraestrutura urbana, capital humano, renda e trabalho) e o IDHM geral com suas dimensões (longevidade, educação, renda) e subcomponentes de educação (escolaridade, frequência escolar) — via join pela coluna `municipio` (código IBGE de 7 dígitos ↔ `codarea`).",
+      "file": "src/data-source-static/data/atlasivs_municipios_2010.csv",
+      "format": "CSV",
+      "source": {
+        "url": "http://ivs.ipea.gov.br/index.php/pt/planilha",
+        "notes": "Extraído de `atlasivs_dadosbrutos_pt_v2.xlsx` (aba `Dados brutos IVS`, 103 colunas), filtrando ano 2010, nível município e totais de cor/sexo/situação de domicílio. Mantidas 12 das 103 colunas. Dados municipais existem apenas para 2000 e 2010. Observação: `ivs` e `idhm` usam ponto decimal; os demais subíndices preservam a vírgula decimal da fonte."
+      },
+      "temporal": {
+        "status": "described",
+        "extent": [
+          [
+            "2010-01-01",
+            "2010-12-31"
+          ]
+        ],
+        "grain": "P1Y",
+        "frequency": "one_time",
+        "history": "snapshot",
+        "timezone": "America/Sao_Paulo"
+      },
+      "spatial": {
+        "status": "described",
+        "extent": [
+          {
+            "scheme": "iso3166-1",
+            "code": "BR"
+          }
+        ],
+        "coverage": "exhaustive",
+        "grain": {
+          "scheme": "admin",
+          "code": "municipality",
+          "label": "município"
+        },
+        "geometry": "none",
+        "precision": "not_applicable",
+        "field": "municipio"
+      },
+      "access": {
+        "level": "public",
+        "contains_personal_data": false
+      },
+      "stats": {
+        "rows": 5565,
+        "size_bytes": 693907,
+        "checkSum": "sha256:3d45207d2f3181388adaff25d92a4dee06a482a221ef0ca35a786b4bfd0cbba8"
+      },
+      "schema": {
+        "fields": [
+          {
+            "name": "municipio",
+            "description": "Código IBGE do município (7 dígitos), chave de join com o mapa",
+            "role": "identifier"
+          },
+          {
+            "name": "nome_municipio_uf",
+            "description": "Nome do município com a UF entre parênteses, ex.: Brasília (DF)"
+          },
+          {
+            "name": "ivs",
+            "description": "Índice de Vulnerabilidade Social geral (0–1); maior = mais vulnerável",
+            "unit": "índice"
+          },
+          {
+            "name": "ivs_infraestrutura_urbana",
+            "description": "Subíndice IVS de Infraestrutura Urbana (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "ivs_capital_humano",
+            "description": "Subíndice IVS de Capital Humano (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "ivs_renda_e_trabalho",
+            "description": "Subíndice IVS de Renda e Trabalho (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm",
+            "description": "Índice de Desenvolvimento Humano Municipal geral (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm_long",
+            "description": "Subíndice IDHM de Longevidade (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm_educ",
+            "description": "Subíndice IDHM de Educação (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm_renda",
+            "description": "Subíndice IDHM de Renda (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm_educ_sub_esc",
+            "description": "Subcomponente de escolaridade do IDHM Educação (0–1)",
+            "unit": "índice"
+          },
+          {
+            "name": "idhm_educ_sub_freq",
+            "description": "Subcomponente de frequência escolar do IDHM Educação (0–1)",
+            "unit": "índice"
+          }
+        ]
+      }
+    },
+    "municipios_cadinsan": {
+      "id": "municipios_cadinsan",
+      "collection_id": "mds_sagi",
+      "slug": "municipios-cadinsan",
+      "title": "Insegurança alimentar de famílias do CadÚnico por município (CADINSAN 2025)",
+      "description": "Contagem de famílias do Cadastro Único em situação de insegurança alimentar (CADINSAN) por município — com e sem o efeito do Programa Bolsa Família (PBF) — mais o total de cadastros do CadÚnico que serve de denominador, para todos os 5.570 municípios do Brasil. Alimenta as duas variantes coropléticas de insegurança alimentar (\"com PBF\" e \"sem PBF\"); a proporção (%) que os mapas pintam é recalculada pela aplicação a partir dos absolutos e do total do CadÚnico (null quando não há denominador), via join pela coluna `Cod_IBGE` (código IBGE de 7 dígitos ↔ `codarea`). As colunas de proporção da própria fonte são ignoradas.",
+      "file": "src/data-source-static/data/CADINSAN_2025_dados_municipais.csv",
+      "format": "CSV",
+      "source": {
+        "url": "https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf",
+        "notes": "CSV delimitado por vírgula; as colunas de proporção carregam vírgula decimal entre aspas (ex.: \"18,7%\") e são ignoradas — o gateway recalcula a proporção a partir dos absolutos e do total do CadÚnico."
+      },
+      "temporal": {
+        "status": "described",
+        "extent": [
+          [
+            "2025-01-01",
+            "2025-12-31"
+          ]
+        ],
+        "grain": "P1Y",
+        "frequency": "one_time",
+        "history": "snapshot",
+        "timezone": "America/Sao_Paulo"
+      },
+      "spatial": {
+        "status": "described",
+        "extent": [
+          {
+            "scheme": "iso3166-1",
+            "code": "BR"
+          }
+        ],
+        "coverage": "exhaustive",
+        "grain": {
+          "scheme": "admin",
+          "code": "municipality",
+          "label": "município"
+        },
+        "geometry": "none",
+        "precision": "not_applicable",
+        "field": "Cod_IBGE"
+      },
+      "access": {
+        "level": "public",
+        "contains_personal_data": false
+      },
+      "stats": {
+        "rows": 5570,
+        "size_bytes": 375142,
+        "checkSum": "sha256:c1d83fa305b61d8f4bfb8d1bb1eb121a80568f3c58204f364c4d4ccd51c06167"
+      },
+      "schema": {
+        "fields": [
+          {
+            "name": "Cod_IBGE",
+            "description": "Código IBGE do município (7 dígitos), chave de join com o mapa (↔ codarea)",
+            "role": "identifier"
+          },
+          {
+            "name": "Região",
+            "description": "Macro-região do país (ex.: Sudeste, Nordeste)"
+          },
+          {
+            "name": "UF",
+            "description": "Unidade federativa, nome completo (ex.: São Paulo)"
+          },
+          {
+            "name": "Município",
+            "description": "Nome do município"
+          },
+          {
+            "name": "Cadinsan_absoluto_com_PBF",
+            "description": "Famílias do CadÚnico em insegurança alimentar, incluindo as beneficiárias do Programa Bolsa Família",
+            "unit": "famílias"
+          },
+          {
+            "name": "Cadinsan_absoluto_sem_PBF",
+            "description": "Famílias do CadÚnico em insegurança alimentar, excluindo o efeito do Programa Bolsa Família",
+            "unit": "famílias"
+          },
+          {
+            "name": "Cadastros_Cadunico",
+            "description": "Total de cadastros (famílias) do CadÚnico no município; denominador das proporções",
+            "unit": "famílias"
+          },
+          {
+            "name": "Cadinsan_proporcional_com_PBF",
+            "description": "Proporção (%) de famílias em insegurança alimentar com PBF, como texto com vírgula decimal (ex.: \"18,7%\"). Ignorada pela aplicação — recalculada a partir dos absolutos.",
+            "unit": "%"
+          },
+          {
+            "name": "Cadinsan_proporcional_sem_PBF",
+            "description": "Proporção (%) de famílias em insegurança alimentar sem o efeito do PBF, como texto com vírgula decimal (ex.: \"27,7%\"). Ignorada pela aplicação — recalculada a partir dos absolutos.",
+            "unit": "%"
+          }
+        ]
+      }
+    }
+  },
+  "extrato": {
+    "catalogo_original_sha256": "8cf18324e483f5923160aabd4d94adfdcb9bdbfaed4d49c3e223feaf368c14cc",
+    "datasets_incluidos": [
+      "municipios_ivs",
+      "municipios_cadinsan"
+    ]
+  }
+}

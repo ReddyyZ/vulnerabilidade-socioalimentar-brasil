@@ -1,0 +1,10 @@
+{
+  "fonte": "IBGE, API de malhas simplificadas v4",
+  "url": "https://servicodados.ibge.gov.br/api/v4/malhas/paises/BR?formato=application%2Fvnd.geo%2Bjson&qualidade=minima&intrarregiao=municipio",
+  "obtido_em": "2026-10-04T15:12:31.081960+00:00",
+  "sha256": "5491bd548fe381cd388ba81c9edfbf4cf2749891e2fd32c1079ac71f7aba1c10",
+  "feicoes": 5571,
+  "ano_malha": null,
+  "nota": "API v4 não expõe parâmetro de período. Não afirmar que esta é a malha de 2025. A correspondência dos códigos é auditada; isso não valida a equivalência histórica dos limites.",
+  "documentacao": "https://servicodados.ibge.gov.br/api/docs/malhas?versao=4"
+}
