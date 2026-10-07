@@ -1,3 +1,0 @@
-﻿dataset_id,arquivo,titulo,inicio_referencia_catalogo,fim_referencia_catalogo,fonte_original,sha256,corresponde_ao_catalogo
-municipios_ivs,ivs_idhm/atlasivs_municipios_2010.csv,"Índice de Vulnerabilidade Social por município (Atlas IVS, 2010)",2010-01-01,2010-12-31,http://ivs.ipea.gov.br/index.php/pt/planilha,3d45207d2f3181388adaff25d92a4dee06a482a221ef0ca35a786b4bfd0cbba8,True
-municipios_cadinsan,cadinsan/CADINSAN_2025_dados_municipais.csv,Insegurança alimentar de famílias do CadÚnico por município (CADINSAN 2025),2025-01-01,2025-12-31,https://www.gov.br/mds/pt-br/Sisan/vigilancia-do-sisan/CADINSAN2025.pdf,c1d83fa305b61d8f4bfb8d1bb1eb121a80568f3c58204f364c4d4ccd51c06167,True
