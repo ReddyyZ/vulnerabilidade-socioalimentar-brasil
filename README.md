@@ -62,17 +62,17 @@ Arquivos para consulta e download:
 - [Unidades com convergência principal](resultados/resultados/execucao_20261007T155319834334Z/municipios_convergencia_total.csv).
 - [Execução completa em ZIP](resultados/resultados/execucao_20261007T155319834334Z.zip), com tabelas, mapas, síntese e metadados.
 
-## Organização
+## Organização do repositório
 
-```text
-experimento.ipynb            análise completa com resultados
-dados/pesquisa/              entradas congeladas, catálogos e metadados
-dados/brutos/                XLSX SISVAN utilizados
-metadados/manifestos/        registros das duas coletas
-resultados/                 entradas, figuras, execuções e ZIPs gerados pelo notebook
-scripts/                    coletor e cliente SISVAN
-requirements.txt            dependências diretas para execução local
-```
+| Arquivo ou pasta | Conteúdo |
+|---|---|
+| `experimento.ipynb` | Análise com resultados executados |
+| `dados/pesquisa/` | Bases utilizadas e documentação |
+| `dados/brutos/` | XLSX originais do SISVAN |
+| `metadados/manifestos/` | Registros das coletas |
+| `resultados/` | Cópias das entradas, figuras e exportações |
+| `scripts/` | Coletor e cliente SISVAN |
+| `requirements.txt` | Dependências para execução local |
 
 ## Referências
 
