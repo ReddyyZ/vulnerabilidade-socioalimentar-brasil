@@ -16,8 +16,8 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 ### Indicadores utilizados
 
-- **IVS:** vulnerabilidade das condições de vida; valores maiores indicam maior vulnerabilidade social.
-- **IDHM:** desenvolvimento humano em longevidade, educação e renda; valores menores indicam menor desenvolvimento.
+- **IVS:** índice de vulnerabilidade social; valores maiores indicam maior vulnerabilidade social.
+- **IDHM:** índice de desenvolvimento humano municipal; valores menores indicam menor desenvolvimento.
 - **CadInsan (%):** percentual de famílias do Cadastro Único com risco alimentar estimado, considerando o efeito do Programa Bolsa Família (PBF).
 - **DAI (%):** percentual de crianças avaliadas com altura baixa ou muito baixa para a idade.
 - **DPI (%):** percentual de crianças avaliadas com peso baixo ou muito baixo para a idade.
@@ -64,15 +64,15 @@ Arquivos para consulta e download:
 
 ## Organização do repositório
 
-| Arquivo ou pasta | Conteúdo |
-|---|---|
-| `experimento.ipynb` | Análise com resultados executados |
-| `dados/pesquisa/` | Bases utilizadas e documentação |
-| `dados/brutos/` | XLSX originais do SISVAN |
-| `metadados/manifestos/` | Registros das coletas |
-| `resultados/` | Cópias das entradas, figuras e exportações |
-| `scripts/` | Coletor e cliente SISVAN |
-| `requirements.txt` | Dependências para execução local |
+| Arquivo ou pasta        | Conteúdo                                   |
+| ----------------------- | ------------------------------------------ |
+| `experimento.ipynb`     | Análise com resultados executados          |
+| `dados/pesquisa/`       | Bases utilizadas e documentação            |
+| `dados/brutos/`         | XLSX originais do SISVAN                   |
+| `metadados/manifestos/` | Registros das coletas                      |
+| `resultados/`           | Cópias das entradas, figuras e exportações |
+| `scripts/`              | Coletor e cliente SISVAN                   |
+| `requirements.txt`      | Dependências para execução local           |
 
 ## Referências
 
