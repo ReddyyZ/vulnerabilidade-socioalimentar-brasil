@@ -54,13 +54,13 @@ identifica **508 unidades**, ou **9,14% dos elegíveis**.
 O **Nordeste** concentra o maior número absoluto de unidades selecionadas: 371. O **Norte** tem a maior proporção entre os elegíveis da própria região:
 123 de 449, ou 27,39%.
 
-![Unidades municipais com convergência dos critérios sociais, alimentares e nutricionais](resultados/resultados/execucao_20261007T155319834334Z/figuras/11_convergencia_total.png)
+![Unidades municipais com convergência dos critérios sociais, alimentares e nutricionais](resultados/resultados/execucao_20261007T175611013662Z/figuras/11_convergencia_total.png)
 
 Arquivos para consulta e download:
 
-- [Base municipal final](resultados/resultados/execucao_20261007T155319834334Z/base_municipal_final.csv).
-- [Unidades com convergência principal](resultados/resultados/execucao_20261007T155319834334Z/municipios_convergencia_total.csv).
-- [Execução completa em ZIP](resultados/resultados/execucao_20261007T155319834334Z.zip), com tabelas, mapas, síntese e metadados.
+- [Base municipal final](resultados/resultados/execucao_20261007T175611013662Z/base_municipal_final.csv).
+- [Unidades com convergência principal](resultados/resultados/execucao_20261007T175611013662Z/municipios_convergencia_total.csv).
+- [Execução completa em ZIP](resultados/resultados/execucao_20261007T175611013662Z.zip), com tabelas, mapas, síntese e metadados.
 
 ## Organização do repositório
 

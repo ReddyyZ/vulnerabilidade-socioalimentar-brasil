@@ -1,4 +1,0 @@
-﻿cenario,quantil,minimo_avaliados,referencia_dai,corte_dai_pct,corte_cadinsan_pct,elegiveis,municipios_dim_alimentar,municipios_dim_nutricional,convergencia_total,corte_dpi_pct,entram_vs_principal,saem_vs_principal,coincidentes_principal,jaccard_principal
-com_PBF,0.75,20,6.7,6.7,10.969776400916134,5561,1393,3693,508,1.8,0,0,508,1.0
-com_PBF,0.75,50,6.7,6.7,10.969776400916134,5531,1393,3684,508,1.8,0,0,508,1.0
-com_PBF,0.75,100,6.7,6.7,10.969776400916134,5326,1393,3613,507,1.8,0,1,507,0.9980314960629921

@@ -1,0 +1,11 @@
+﻿codigo_ibge,municipio,uf,avaliados_altura,avaliados_peso,dai_pct,dpi_pct,motivo_nao_classificacao
+1504752,MOJUI DOS CAMPOS,PA,1771,1771,10.784867306606436,3.2185206098249575,IVS ausente; IDHM ausente
+4200754,ALTO BELA VISTA,SC,19,19,15.789473684210526,0.0,menos de 20 avaliações de altura; menos de 20 avaliações de peso
+4212650,PESCARIA BRAVA,SC,416,416,12.980769230769232,2.644230769230769,IVS ausente; IDHM ausente
+4220000,BALNEARIO RINCAO,SC,886,886,14.89841986455982,2.595936794582393,IVS ausente; IDHM ausente
+4310462,IPIRANGA DO SUL,RS,10,10,20.0,0.0,menos de 20 avaliações de altura; menos de 20 avaliações de peso
+4314548,PINTO BANDEIRA,RS,113,113,0.0,0.0,IVS ausente; IDHM ausente
+4317251,SANTA TEREZA,RS,6,6,0.0,0.0,menos de 20 avaliações de altura; menos de 20 avaliações de peso
+4322350,UNIAO DA SERRA,RS,15,15,0.0,0.0,menos de 20 avaliações de altura; menos de 20 avaliações de peso
+5006275,PARAISO DAS AGUAS,MS,375,375,4.533333333333333,3.2,IVS ausente; IDHM ausente
+510183,BOA ESPERANCA DO NORTE,MT,0,0,,,IVS ausente; IDHM ausente; CadInsan ausente ou denominador inválido; DAI ausente ou sem avaliações; DPI ausente ou sem avaliações

@@ -1,0 +1,32 @@
+﻿variavel,definicao,unidade
+codigo_ibge,Código de sete dígitos disponível nas fontes sociais; prefixo de seis se desconhecido,texto
+codigo_ibge_6,Prefixo único usado na integração; não valida limites históricos,texto
+codigo_ibge_7,Código das fontes sociais; sem inventar dígito verificador,texto
+municipio / uf / regiao,Identificação territorial,texto
+ivs,"Índice de Vulnerabilidade Social, 2010; corte ≥ 0,401",0–1
+idhm,"Desenvolvimento humano municipal, 2010; corte < 0,600",0–1
+familias_cadinsan,"Denominador familiar do próprio CSV CadInsan, janeiro/2025",famílias
+cadinsan_n,Famílias em risco estimado no cenário selecionado,famílias
+cadinsan_pct,100 × cadinsan_n / familias_cadinsan; corte P75 exploratório,%
+cadinsan_pct_*_arquivo,"Percentuais oficiais arredondados, preservados",%
+cadinsan_diferenca_pp_*,Diferença da razão recalculada para o percentual da fonte,pontos percentuais
+avaliados_altura / avaliados_peso,"Totais separados por relatório SISVAN, menores de cinco anos, 2025",avaliados
+altura_muito_baixa_n / altura_baixa_n,Categorias de baixa estatura classificadas pelo SISVAN,avaliados
+peso_muito_baixo_n / peso_baixo_n,Categorias de baixo peso classificadas pelo SISVAN,avaliados
+dai_n / dpi_n,Soma das duas categorias desfavoráveis do respectivo relatório,avaliados
+dai_pct / dpi_pct,100 × numerador / respectivo total; total zero gera ausência,%
+criterio_*,Critérios individuais anuláveis; DAI e DPI integram a definição nutricional principal,booleano anulável
+dim_social / social_alta,"IVS ≥ 0,401 E IDHM < 0,600; ausente se falta algum",booleano anulável
+social_status,Combinação dos dois critérios sociais; não representa duas dimensões,categoria
+dim_alimentar / cadinsan_alto,CadInsan ≥ P75 nacional no cenário selecionado,booleano anulável
+dim_nutricional / nutricional_alta,"DAI ≥6,7% E DPI ≥1,8%, altura e peso ≥20 no cenário principal; insuficiente se falta algum",booleano anulável
+dpi_status,"Situação do componente DPI, com mínimo próprio de peso",categoria
+n_dimensoes_desfavoraveis,"Número de dimensões desfavoráveis, ausente se qualquer dimensão é desconhecida",0–3
+classe_convergencia,Classe descritiva da convergência; não diagnóstico ou ranking,categoria
+convergencia_total,As três dimensões desfavoráveis; ausente se informação insuficiente,booleano anulável
+elegivel_principal,"Informação suficiente para as três dimensões, incluindo altura e peso",booleano
+motivo_nao_classificacao,Motivo de insuficiência para a seleção principal; requer altura e peso,texto
+*_valor_fonte / *_percentual_fonte,Células da fonte antes de qualquer leitura analítica,texto
+sisvan_*_escala_alterada / sisvan_*_escalas_compativeis,Auditoria de leitura das contagens já existente na v1,booleano / inteiro
+tem_*,Presença de registro na respectiva entrada,booleano
+fracao_cenarios_selecionado,Fração de cenários testados que seleciona; não probabilidade de risco,0–1
