@@ -4,13 +4,13 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 ## Bases de dados utilizadas
 
-| Entrada                      | Arquivo em`dados/pesquisa/`                                                                         | Referência                            |     Registros | Obtenção                                            |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------: | --------------------------------------------------- |
-| IVS e IDHM                   | [atlasivs_municipios_2010.csv](dados/pesquisa/ivs_idhm/atlasivs_municipios_2010.csv)                | 2010                                  |         5.565 | Cozinhas Solidárias; fontes originais Ipea/PNUD/FJP |
-| CadInsan                     | [CADINSAN_2025_dados_municipais.csv](dados/pesquisa/cadinsan/CADINSAN_2025_dados_municipais.csv)    | Janeiro/2025                          |         5.570 | Cozinhas Solidárias; relatório original MDS         |
-| SISVAN - Altura X Idade      | [CSV de altura](dados/pesquisa/sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv) | 2025; Crianças de 0 a menos de 5 anos |         5.571 | Relatórios públicos do Ministério da Saúde; 27 UFs  |
-| SISVAN - Peso X Idade        | [CSV de peso](dados/pesquisa/sisvan/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_2025.csv)     | 2025; Crianças de 0 a menos de 5 anos |         5.571 | Relatórios públicos do Ministério da Saúde; 27 UFs  |
-| Malha municipal simplificada | [GeoJSON municipal](dados/pesquisa/apoio/ibge/malha_municipal_simplificada.geojson)                 | Ano não informado pela API            | 5.571 feições | IBGE, API de malhas v4; apoio ilustrativo           |
+| Entrada                      | Arquivo em`dados/pesquisa/`                                                                      | Referência                              |       Registros | Obtenção                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------- | --------------: | ------------------------------------------------------ |
+| IVS e IDHM                   | [atlasivs_municipios_2010.csv](dados/pesquisa/ivs_idhm/atlasivs_municipios_2010.csv)                | 2010                                     |           5.565 | Cozinhas Solidárias; fontes originais Ipea/PNUD/FJP   |
+| CadInsan                     | [CADINSAN_2025_dados_municipais.csv](dados/pesquisa/cadinsan/CADINSAN_2025_dados_municipais.csv)    | Janeiro/2025                             |           5.570 | Cozinhas Solidárias; relatório original MDS          |
+| SISVAN - Altura X Idade      | [CSV de altura](dados/pesquisa/sisvan/sisvan_municipios_altura_por_idade_0_a_menor_5_anos_2025.csv) | 2025; Crianças de 0 a menos de 5 anos  |           5.571 | Relatórios públicos do Ministério da Saúde; 27 UFs |
+| SISVAN - Peso X Idade        | [CSV de peso](dados/pesquisa/sisvan/sisvan_municipios_peso_por_idade_0_a_menor_5_anos_2025.csv)     | 2025; Crianças de 0 a menos de 5 anos |           5.571 | Relatórios públicos do Ministério da Saúde; 27 UFs |
+| Malha municipal simplificada | [GeoJSON municipal](dados/pesquisa/apoio/ibge/malha_municipal_simplificada.geojson)                 | Ano não informado pela API              | 5.571 feições | IBGE, API de malhas v4; apoio ilustrativo              |
 
 ## Estratégia e indicadores
 
@@ -24,16 +24,16 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 ### Dimensões e critérios
 
-| Dimensão    | O que representa                                                                   | Critério adotado                                                    |
-| ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Social      | Vulnerabilidade estrutural e baixo desenvolvimento humano                          | IVS ≥0,401**e** IDHM <0,600                                         |
-| Alimentar   | Concentração municipal de risco alimentar estimado                                 | CadInsan ≥P75 nacional, cenário`com_PBF`                            |
+| Dimensão   | O que representa                                                                     | Critério adotado                                                               |
+| ----------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Social      | Vulnerabilidade estrutural e baixo desenvolvimento humano                            | IVS ≥0,401**e** IDHM <0,600                                              |
+| Alimentar   | Concentração municipal de risco alimentar estimado                                 | CadInsan ≥P75 nacional, cenário`com_PBF`                                    |
 | Nutricional | Déficits de crescimento em crianças menores de cinco anos acompanhadas pelo SISVAN | DAI ≥6,7%**e** DPI ≥1,8%; mínimo de 20 avaliações em cada relatório |
 
 Os cortes sociais correspondem às faixas alta/muito alta do IVS e baixa/muito
 baixa do IDHM.
 
-Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliaçõesforam adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11). Esses percentuais correspondem às prevalências nacionais estimadas pela Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
+Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliações foram adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11). Esses percentuais correspondem às prevalências nacionais estimadas pela Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
 
 O P75 (75º percentil nacional) é uma escolha exploratória, não um corte oficial.
 
