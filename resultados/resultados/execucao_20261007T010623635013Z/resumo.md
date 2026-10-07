@@ -55,10 +55,6 @@ As 72 combinações variam entre
 627; essa amplitude é
 secundária e não é intervalo de confiança.
 
-**Associações:** IVS–IDHM, Spearman -0,889 (forte e inversa);
-DAI–DPI, 0,575. As relações entre dimensões estão
-na matriz de pares disponíveis; nenhuma demonstra causalidade.
-
 **Limitações centrais:** dimensão social histórica (2010), fontes alimentares e
 nutricionais de 2025, população SISVAN não necessariamente representativa,
 variabilidade dos denominadores, P75 exploratório e ausência de ligação

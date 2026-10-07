@@ -40,8 +40,8 @@ O P75 (75º percentil nacional) é uma escolha exploratória, não um corte ofic
 ### Análise realizada
 
 As bases foram integradas por município para identificar a sobreposição
-simultânea das três dimensões. Foram analisados a distribuição territorial,
-mapas, correlações de Spearman e a sensibilidade aos critérios. A análise é
+simultânea das três dimensões. Foram analisados os mapas, a distribuição
+territorial e a sensibilidade aos critérios. A análise é
 exploratória, sem ranking ou inferência causal. Detalhes metodológicos,
 auditorias e limitações estão no [notebook](experimento.ipynb).
 
@@ -54,16 +54,16 @@ identifica **508 unidades**, ou **9,14% dos elegíveis**.
 O **Nordeste** concentra o maior número absoluto de unidades selecionadas: 371. O **Norte** tem a maior proporção entre os elegíveis da própria região:
 123 de 449, ou 27,39%.
 
-![Unidades municipais com convergência dos critérios sociais, alimentares e nutricionais](resultados/resultados/execucao_20261007T002508824543Z/figuras/11_convergencia_total.png)
+![Unidades municipais com convergência dos critérios sociais, alimentares e nutricionais](resultados/resultados/execucao_20261007T010623635013Z/figuras/11_convergencia_total.png)
 
 Arquivos para consulta e download:
 
-- [Base municipal final](resultados/resultados/execucao_20261007T002508824543Z/base_municipal_final.csv) e [unidades com convergência principal](resultados/resultados/execucao_20261007T002508824543Z/municipios_convergencia_total.csv).
-- Resumos [nacional](resultados/resultados/execucao_20261007T002508824543Z/resumo_nacional.csv), [regional](resultados/resultados/execucao_20261007T002508824543Z/resumo_regional.csv) e [por UF](resultados/resultados/execucao_20261007T002508824543Z/resumo_uf.csv).
-- [Sensibilidade dos critérios](resultados/resultados/execucao_20261007T002508824543Z/sensibilidade.csv) e [estabilidade da seleção](resultados/resultados/execucao_20261007T002508824543Z/estabilidade.csv).
-- [Cortes utilizados](resultados/resultados/execucao_20261007T002508824543Z/cortes.csv) e [dicionário de variáveis](resultados/resultados/execucao_20261007T002508824543Z/dicionario_variaveis.csv).
-- [Síntese gerada pelo notebook](resultados/resultados/execucao_20261007T002508824543Z/resumo.md) e [manifesto com parâmetros, fontes, hashes das entradas e ambiente](resultados/resultados/execucao_20261007T002508824543Z/manifesto_execucao.json).
-- [Execução completa em ZIP](resultados/resultados/execucao_20261007T002508824543Z.zip).
+- [Base municipal final](resultados/resultados/execucao_20261007T010623635013Z/base_municipal_final.csv) e [unidades com convergência principal](resultados/resultados/execucao_20261007T010623635013Z/municipios_convergencia_total.csv).
+- Resumos [nacional](resultados/resultados/execucao_20261007T010623635013Z/resumo_nacional.csv), [regional](resultados/resultados/execucao_20261007T010623635013Z/resumo_regional.csv) e [por UF](resultados/resultados/execucao_20261007T010623635013Z/resumo_uf.csv).
+- [Sensibilidade dos critérios](resultados/resultados/execucao_20261007T010623635013Z/sensibilidade.csv) e [estabilidade da seleção](resultados/resultados/execucao_20261007T010623635013Z/estabilidade.csv).
+- [Cortes utilizados](resultados/resultados/execucao_20261007T010623635013Z/cortes.csv) e [dicionário de variáveis](resultados/resultados/execucao_20261007T010623635013Z/dicionario_variaveis.csv).
+- [Síntese gerada pelo notebook](resultados/resultados/execucao_20261007T010623635013Z/resumo.md) e [manifesto com parâmetros, fontes, hashes das entradas e ambiente](resultados/resultados/execucao_20261007T010623635013Z/manifesto_execucao.json).
+- [Execução completa em ZIP](resultados/resultados/execucao_20261007T010623635013Z.zip).
 
 ## Abrir e executar o notebook
 
