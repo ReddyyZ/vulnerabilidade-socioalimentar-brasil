@@ -35,10 +35,6 @@ está em **Norte** (27,39%).
 Prevalência regional da classificação municipal não equivale à prevalência
 de fome nas pessoas; concentração absoluta e proporção têm denominadores distintos.
 
-**Comparação nutricional:** DAI isolado seleciona 548;
-DAI + DPI seleciona 508; diferença de
-40 unidades. A alternativa é mais abrangente.
-
 **Sensibilidade — uma mudança por vez, mantendo os demais parâmetros principais:**
 
 - Mínimo SISVAN (altura e peso): n ≥ 20 → 508; n ≥ 50 → 508; n ≥ 100 → 507.

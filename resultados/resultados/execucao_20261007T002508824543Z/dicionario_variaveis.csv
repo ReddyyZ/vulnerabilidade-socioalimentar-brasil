@@ -21,13 +21,11 @@ dim_social / social_alta,"IVS ≥ 0,401 E IDHM < 0,600; ausente se falta algum",
 social_status,Combinação dos dois critérios sociais; não representa duas dimensões,categoria
 dim_alimentar / cadinsan_alto,CadInsan ≥ P75 nacional no cenário selecionado,booleano anulável
 dim_nutricional / nutricional_alta,"DAI ≥6,7% E DPI ≥1,8%, altura e peso ≥20 no cenário principal; insuficiente se falta algum",booleano anulável
-dim_nutricional_dai,"DAI ≥ corte, altura ≥ mínimo; definição alternativa mais abrangente",booleano anulável
 dpi_status,"Situação do componente DPI, com mínimo próprio de peso",categoria
 n_dimensoes_desfavoraveis,"Número de dimensões desfavoráveis, ausente se qualquer dimensão é desconhecida",0–3
 classe_convergencia,Classe descritiva da convergência; não diagnóstico ou ranking,categoria
 convergencia_total,As três dimensões desfavoráveis; ausente se informação insuficiente,booleano anulável
-convergencia_total_dai,Social E alimentar E DAI isolado; comparação alternativa,booleano anulável
-elegivel_principal / elegivel_dai,Informação suficiente para todas as dimensões principal / alternativa,booleano
+elegivel_principal,"Informação suficiente para as três dimensões, incluindo altura e peso",booleano
 motivo_nao_classificacao,Motivo de insuficiência para a seleção principal; requer altura e peso,texto
 *_valor_fonte / *_percentual_fonte,Células da fonte antes de qualquer leitura analítica,texto
 sisvan_*_escala_alterada / sisvan_*_escalas_compativeis,Auditoria de leitura das contagens já existente na v1,booleano / inteiro

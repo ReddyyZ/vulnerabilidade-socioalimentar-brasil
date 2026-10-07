@@ -1,7 +1,7 @@
 # Dados utilizados no experimento
 
 As instruções completas, fontes, critérios e limitações estão no README.md
-da raiz do repositório e no notebook `notebooks/experimento.ipynb`.
+da raiz do repositório e no notebook `experimento.ipynb`.
 
 Esta pasta contém os quatro CSVs utilizados, dois metadados SISVAN, a malha
 IBGE e seus metadados, o catálogo original, seu extrato de duas fontes e o
@@ -26,16 +26,15 @@ veio de uma conversão histórica que conciliou contagens. CSVs e metadados
 históricos não são reescritos. DAI e DPI são calculados somente na análise.
 Ler os CSVs SISVAN como texto com `utf-8-sig`; códigos territoriais são texto.
 
-Para verificar, na raiz:
+O notebook confere os hashes das entradas incorporadas antes da análise.
+Para verificar os arquivos desta pasta no Linux, a partir da raiz:
 
 ```bash
-python -m scripts.reproduzir_experimento --verificar
+cd dados/pesquisa
+sha256sum -c SHA256SUMS
 ```
 
-Para reconstruir cópias dos CSVs a partir dos XLSX, sem rede:
-
-```bash
-python -m scripts.reconstruir_sisvan --destino resultados_reconstrucao
-```
+Os XLSX originais e os manifestos de coleta permanecem públicos para conferir
+a procedência; não são lidos durante a execução do notebook.
 
 Novas coletas ficam em `dados/coletas/`, fora desta seleção.
