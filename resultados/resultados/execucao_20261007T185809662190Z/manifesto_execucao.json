@@ -1,6 +1,6 @@
 {
   "experimento": "sobreposicao_criterios",
-  "executado_em": "2026-10-07T17:56:11.402182+00:00",
+  "executado_em": "2026-10-07T18:58:09.870466+00:00",
   "quantil_cadinsan": 0.75,
   "corte_dai_pct": 6.7,
   "corte_dpi_pct": 1.8,
@@ -87,7 +87,7 @@
       "integridade": "OK"
     }
   ],
-  "codigo_analise_sha256": "ff1b64c7e3730ffebfa8d9a0c54d3dca1cc3e0f5469cf3554044de232753c8cb",
+  "codigo_analise_sha256": "247c6c217410c2d82afbf3af95c26a23792af3ae0128d9c94156e8912786c7e3",
   "proveniencia_catalogo": {
     "catalogo_sha256": "ee7d272563a814423acd7b4451e79082767e80f3d386da71d53bfccb6f0056b3",
     "catalogo_id": "coz_solidarias_data_catalog",
