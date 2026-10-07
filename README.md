@@ -24,17 +24,17 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 ### Dimensões e critérios
 
-| Dimensão | O que representa | Critério adotado |
-|---|---|---|
-| Social | Vulnerabilidade estrutural e baixo desenvolvimento humano | IVS ≥0,401 **e** IDHM <0,600 |
-| Alimentar | Concentração municipal de risco alimentar estimado | CadInsan ≥P75 nacional, cenário `com_PBF` |
-| Nutricional | Déficits de crescimento em crianças menores de cinco anos acompanhadas pelo SISVAN | DAI ≥6,7% **e** DPI ≥1,8%; mínimo de 20 avaliações em cada relatório |
+| Dimensão    | O que representa                                                                   | Critério adotado                                                    |
+| ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Social      | Vulnerabilidade estrutural e baixo desenvolvimento humano                          | IVS ≥0,401**e** IDHM <0,600                                         |
+| Alimentar   | Concentração municipal de risco alimentar estimado                                 | CadInsan ≥P75 nacional, cenário`com_PBF`                            |
+| Nutricional | Déficits de crescimento em crianças menores de cinco anos acompanhadas pelo SISVAN | DAI ≥6,7%**e** DPI ≥1,8%; mínimo de 20 avaliações em cada relatório |
 
 Os cortes sociais correspondem às faixas alta/muito alta do IVS e baixa/muito
-baixa do IDHM. Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliações
-foram adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11).
-Esses percentuais correspondem às prevalências nacionais estimadas pela
-Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
+baixa do IDHM.
+
+Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliaçõesforam adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11). Esses percentuais correspondem às prevalências nacionais estimadas pela Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
+
 O P75 (75º percentil nacional) é uma escolha exploratória, não um corte oficial.
 
 ### Análise realizada
@@ -64,20 +64,6 @@ Arquivos para consulta e download:
 - [Cortes utilizados](resultados/resultados/execucao_20261007T010623635013Z/cortes.csv) e [dicionário de variáveis](resultados/resultados/execucao_20261007T010623635013Z/dicionario_variaveis.csv).
 - [Síntese gerada pelo notebook](resultados/resultados/execucao_20261007T010623635013Z/resumo.md) e [manifesto com parâmetros, fontes, hashes das entradas e ambiente](resultados/resultados/execucao_20261007T010623635013Z/manifesto_execucao.json).
 - [Execução completa em ZIP](resultados/resultados/execucao_20261007T010623635013Z.zip).
-
-## Abrir e executar o notebook
-
-Para consultar a análise e os resultados já executados, abra
-[experimento.ipynb](experimento.ipynb) no GitHub.
-
-Para executar no Google Colab, abra o mesmo arquivo e rode todas as células
-em ordem. O código e cópias verificáveis das entradas estão incorporados:
-não são necessários Drive, upload de CSV ou scripts locais.
-Os parâmetros estão na primeira célula de código; a última etapa exporta um ZIP.
-
-O Colab pode ter versões diferentes das bibliotecas de referência. O notebook
-registra o ambiente real e informa divergências; não se pressupõe igualdade
-de ambiente no Colab.
 
 ## Organização
 
