@@ -56,13 +56,15 @@ acima de um patamar percentual comum.
 Das **5.571 unidades municipais**, **5.561 são elegíveis** em cada cenário e
 **10 têm dados insuficientes**.
 
-| Cenário CadInsan | Corte do 5º quintil | Convergência total | Percentual dos elegíveis |
-|---|---:|---:|---:|
-| Com PBF | 11,92% | 445 | 8,00% |
-| Sem PBF | 24,76% | 473 | 8,51% |
+| Cenário CadInsan | Corte do 5º quintil | Total selecionado na análise | Selecionadas somente neste cenário | Percentual dos elegíveis |
+|---|---:|---:|---:|---:|
+| Com PBF | 11,92% | 445 | 199 | 8,00% |
+| Sem PBF | 24,76% | 473 | 227 | 8,51% |
 
-Entre os elegíveis comuns, **246 unidades** têm convergência nos dois cenários,
-199 apenas com PBF e 227 apenas sem PBF. O Nordeste tem a maior quantidade
+**246 unidades municipais são selecionadas em ambas as análises** e já estão
+incluídas no total de cada cenário. A coluna “Selecionadas somente neste cenário”
+mostra as unidades que não foram selecionadas na outra análise.
+O Nordeste tem a maior quantidade
 selecionada em ambos; o Norte tem a maior proporção entre seus elegíveis.
 Os cortes exibidos são arredondados; a seleção usa os valores sem arredondamento.
 
