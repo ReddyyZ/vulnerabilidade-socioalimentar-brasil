@@ -1,0 +1,11 @@
+﻿indicador,corte,operador,metodo,municipios_referencia,municipios_no_criterio,municipios_no_corte,percentil,cenario
+ivs,0.401,>=,faixa IVS/Ipea,5565,1981,16,,com_PBF
+idhm,0.6,<,baixo desenvolvimento adotado,5565,1399,23,,com_PBF
+cadinsan,11.922476852817024,>=,quantil exploratório,5570,1114,0,80.0,com_PBF
+dai,6.7,>=,referência Mapa InSAN,5566,4292,0,,com_PBF
+dpi,1.8,>=,referência Mapa InSAN,5566,4329,0,,com_PBF
+ivs,0.401,>=,faixa IVS/Ipea,5565,1981,16,,sem_PBF
+idhm,0.6,<,baixo desenvolvimento adotado,5565,1399,23,,sem_PBF
+cadinsan,24.76369763757378,>=,quantil exploratório,5570,1114,0,80.0,sem_PBF
+dai,6.7,>=,referência Mapa InSAN,5566,4292,0,,sem_PBF
+dpi,1.8,>=,referência Mapa InSAN,5566,4329,0,,sem_PBF

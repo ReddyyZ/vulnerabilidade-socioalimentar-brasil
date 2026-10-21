@@ -18,7 +18,7 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 
 - **IVS:** índice de vulnerabilidade social; valores maiores indicam maior vulnerabilidade social.
 - **IDHM:** índice de desenvolvimento humano municipal; valores menores indicam menor desenvolvimento.
-- **CadInsan (%):** percentual de famílias do Cadastro Único com risco alimentar estimado, considerando o efeito do Programa Bolsa Família (PBF).
+- **CadInsan (%):** percentual de famílias do universo analisado do Cadastro Único com risco alimentar estimado, nos cenários considerando a renda do Bolsa Família (PBF) e na simulação sem essa renda.
 - **DAI (%):** percentual de crianças avaliadas com altura baixa ou muito baixa para a idade.
 - **DPI (%):** percentual de crianças avaliadas com peso baixo ou muito baixo para a idade.
 
@@ -27,7 +27,7 @@ Análise exploratória com objetivo de identificar áreas do Brasil de maior ris
 | Dimensão    | O que representa                                                                   | Critério adotado                                                    |
 | ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | Social      | Vulnerabilidade estrutural e baixo desenvolvimento humano                          | IVS ≥0,401**e** IDHM <0,600                                         |
-| Alimentar   | Concentração municipal de risco alimentar estimado                                 | CadInsan ≥P75 nacional, cenário`com_PBF`                            |
+| Alimentar   | Concentração municipal de risco alimentar estimado                                 | 5º quintil nacional próprio, cenários `com_PBF` e `sem_PBF`          |
 | Nutricional | Déficits de crescimento em crianças menores de cinco anos acompanhadas pelo SISVAN | DAI ≥6,7%**e** DPI ≥1,8%; mínimo de 20 avaliações em cada relatório |
 
 Os cortes sociais correspondem às faixas alta/muito alta do IVS e baixa/muito
@@ -35,32 +35,51 @@ baixa do IDHM.
 
 Os cortes de DAI (6,7%) e DPI (1,8%) e o mínimo de 20 avaliações foram adaptados do [Mapa InSAN 2017–2022, p. 11, tabela 2](https://aplicacoes.mds.gov.br/fomento-questionario/pdf/MapaInSAN_20172022.pdf#page=11). Esses percentuais correspondem às prevalências nacionais estimadas pela Pesquisa Nacional de Demografia e Saúde (PNDS 2006), adotadas como referência pelo Mapa.
 
-O P75 (75º percentil nacional) é uma escolha exploratória, não um corte oficial.
+O quinto quintil reúne aproximadamente os 20% dos municípios com maior CadInsan.
+Seu limite (quantil 0,80, equivalente a P80) é calculado separadamente para cada
+cenário, antes dos filtros sociais e nutricionais, com pesos municipais iguais
+e empates incluídos. É uma escolha exploratória, não um corte oficial.
 
 ### Análise realizada
 
 As bases foram integradas por município para identificar a sobreposição
-simultânea das três dimensões. Foram analisados os mapas, a distribuição
+simultânea das três dimensões em cada cenário. Foram analisados os mapas, a distribuição
 territorial e a sensibilidade aos critérios. A análise é
 exploratória, sem ranking ou inferência causal. Detalhes metodológicos,
-auditorias e limitações estão no [notebook](experimento.ipynb).
+auditorias e limitações estão no [notebook](experimento.ipynb). Os cenários não
+são grupos de beneficiários e não beneficiários. Como os cortes são próprios,
+a comparação mostra posição relativa, não efeito causal do PBF nem mudança
+acima de um patamar percentual comum.
 
 ## Resultados
 
-Das **5.571 unidades municipais**, **5.561 são elegíveis** para a análise das
-três dimensões e **10 têm dados insuficientes**. A convergência principal
-identifica **508 unidades**, ou **9,14% dos elegíveis**.
+Das **5.571 unidades municipais**, **5.561 são elegíveis** em cada cenário e
+**10 têm dados insuficientes**.
 
-O **Nordeste** concentra o maior número absoluto de unidades selecionadas: 371. O **Norte** tem a maior proporção entre os elegíveis da própria região:
-123 de 449, ou 27,39%.
+| Cenário CadInsan | Corte do 5º quintil | Total selecionado na análise | Selecionadas somente neste cenário | Percentual dos elegíveis |
+|---|---:|---:|---:|---:|
+| Com PBF | 11,92% | 445 | 199 | 8,00% |
+| Sem PBF | 24,76% | 473 | 227 | 8,51% |
 
-![Unidades municipais com convergência dos critérios sociais, alimentares e nutricionais](resultados/resultados/execucao_20261007T185809662190Z/figuras/11_convergencia_total.png)
+**246 unidades municipais são selecionadas em ambas as análises** e já estão
+incluídas no total de cada cenário. A coluna “Selecionadas somente neste cenário”
+mostra as unidades que não foram selecionadas na outra análise.
+O Nordeste tem a maior quantidade
+selecionada em ambos; o Norte tem a maior proporção entre seus elegíveis.
+Os cortes exibidos são arredondados; a seleção usa os valores sem arredondamento.
+
+![Convergência total considerando a renda do PBF](resultados/resultados/execucao_20261020T182348094657Z/figuras/11_convergencia_total_com_PBF.png)
+
+![Convergência total no cenário sem a renda do PBF](resultados/resultados/execucao_20261020T182348094657Z/figuras/11_convergencia_total_sem_PBF.png)
 
 Arquivos para consulta e download:
 
-- [Base municipal final](resultados/resultados/execucao_20261007T185809662190Z/base_municipal_final.csv).
-- [Unidades com convergência principal](resultados/resultados/execucao_20261007T185809662190Z/municipios_convergencia_total.csv).
-- [Execução completa em ZIP](resultados/resultados/execucao_20261007T185809662190Z.zip), com tabelas, mapas, síntese e metadados.
+- [Base municipal com os dois cenários](resultados/resultados/execucao_20261020T182348094657Z/base_municipal_final.csv).
+- [Convergência com PBF](resultados/resultados/execucao_20261020T182348094657Z/municipios_convergencia_total_com_PBF.csv) e [sem PBF](resultados/resultados/execucao_20261020T182348094657Z/municipios_convergencia_total_sem_PBF.csv).
+- [Execução completa em ZIP](resultados/resultados/execucao_20261020T182348094657Z.zip), com comparação, tabelas, mapas, síntese e metadados.
+
+A [execução anterior](resultados/resultados/execucao_20261007T185809662190Z/resumo.md)
+preserva o resultado histórico P75/com PBF. Não corresponde à regra atual de quinto quintil.
 
 ## Organização do repositório
 
